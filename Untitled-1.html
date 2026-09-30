@@ -1,0 +1,3241 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BublikBnB – бронирование отелей</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <style>
+        :root {
+            --airbnb-pink: #FF385C;
+            --airbnb-pink-dark: #E31C5F;
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #242424;
+            --bg-card: #2d2d2d;
+            --bg-hover: #363636;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --text-muted: #808080;
+            --border-color: #404040;
+            --shadow: 0 2px 8px rgba(0,0,0,0.3);
+            --shadow-hover: 0 4px 16px rgba(0,0,0,0.5);
+            --radius: 12px;
+            --error-color: #ff4d4f;
+            --success-color: #52c41a;
+            --google-color: #4285F4;
+            --yandex-color: #FC3F1D;
+            --vk-color: #0077FF;
+            --youtube-color: #FF0000;
+            --telegram-color: #26A5E4;
+            --whatsapp-color: #25D366;
+            --instagram-color: #E4405F;
+            --gold-color: #FFD700;
+            --owner-color: #FFD700;
+            --moderator-color: #52c41a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--airbnb-pink);
+            text-decoration: none;
+            letter-spacing: -0.5px;
+            cursor: pointer;
+        }
+
+        .logo span { color: var(--text-primary); }
+
+        .header-actions { display: flex; gap: 12px; align-items: center; }
+
+        .btn-header {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-header:hover { border-color: var(--airbnb-pink); color: var(--airbnb-pink); }
+
+        .user-info { display: none; align-items: center; gap: 12px; position: relative; }
+        .user-info.active { display: flex; }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--airbnb-pink);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            color: white;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid var(--border-color);
+            transition: border-color 0.2s, transform 0.2s;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .user-avatar:hover { border-color: var(--airbnb-pink); transform: scale(1.05); }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+        .user-avatar.owner { border-color: var(--owner-color); }
+        .user-avatar.moderator { border-color: var(--moderator-color); }
+
+        .user-avatar .role-badge {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            border: 2px solid var(--bg-secondary);
+        }
+
+        .user-avatar.owner .role-badge { background: var(--owner-color); }
+        .user-avatar.moderator .role-badge { background: var(--moderator-color); }
+
+        .user-name { font-size: 14px; font-weight: 600; color: var(--text-primary); cursor: pointer; }
+
+        .user-role-tag {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .user-role-tag.owner { background: var(--owner-color); color: #333; }
+        .user-role-tag.moderator { background: var(--moderator-color); color: #fff; }
+
+        .user-menu {
+            position: absolute;
+            top: 55px;
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-hover);
+            min-width: 240px;
+            padding: 8px;
+            display: none;
+            z-index: 200;
+        }
+
+        .user-menu.active { display: block; animation: fadeIn 0.2s ease-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-menu-item {
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s;
+        }
+
+        .user-menu-item:hover { background: var(--bg-hover); }
+        .user-menu-item.danger:hover { background: rgba(255, 77, 79, 0.15); color: var(--error-color); }
+        .user-menu-item.admin { color: var(--airbnb-pink); }
+
+        .user-menu-divider { height: 1px; background: var(--border-color); margin: 6px 0; }
+
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            background: var(--bg-card);
+            padding: 8px;
+            border-radius: 30px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .search-field { flex: 1; background: transparent; border-radius: 20px; padding: 6px 12px; }
+
+        .search-field label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .search-field input, .search-field select {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            background: transparent;
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+
+        .search-field select { cursor: pointer; }
+        .search-field input::placeholder { color: var(--text-muted); }
+
+        .btn-search {
+            background: var(--airbnb-pink);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+
+        .btn-search:hover { background: var(--airbnb-pink-dark); transform: scale(1.02); }
+
+        .main-container { max-width: 1200px; margin: 0 auto; padding: 24px 20px; flex: 1; width: 100%; }
+
+        .page-view { display: none; }
+        .page-view.active { display: block; animation: pageFadeIn 0.3s ease-out; }
+
+        @keyframes pageFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .filters-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .filters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .filters-title { font-size: 18px; font-weight: 700; }
+
+        .btn-clear {
+            color: var(--text-secondary);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: underline;
+            font-weight: 600;
+            font-family: inherit;
+        }
+
+        .btn-clear:hover { color: var(--airbnb-pink); }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+
+        .filter-group label { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+
+        .filter-group select, .filter-group input {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+
+        .filter-group select:focus, .filter-group input:focus { border-color: var(--airbnb-pink); }
+        .filter-group input[type="date"] { color-scheme: dark; }
+
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .checkbox-group input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--airbnb-pink); cursor: pointer; }
+        .checkbox-group label { font-size: 14px; color: var(--text-primary); cursor: pointer; }
+
+        .results-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .results-count { font-size: 16px; color: var(--text-secondary); font-weight: 600; }
+        .results-count strong { color: var(--text-primary); }
+
+        .sort-select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .hotels-list { display: flex; flex-direction: column; gap: 20px; }
+
+        .hotel-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            overflow: hidden;
+            display: flex;
+            transition: all 0.3s;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .hotel-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+            border-color: var(--airbnb-pink);
+        }
+
+        .hotel-image-container {
+            width: 280px;
+            min-height: 220px;
+            position: relative;
+            background: var(--bg-primary);
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .hotel-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: transform 0.3s;
+            filter: blur(1px);
+        }
+
+        .hotel-card:hover .hotel-image { transform: scale(1.05); filter: blur(0.5px); }
+
+        .hotel-image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.3));
+            z-index: 1;
+        }
+
+        .hotel-image-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 48px;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .hotel-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: var(--airbnb-pink);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            z-index: 2;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .hotel-content { flex: 1; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+
+        .hotel-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px; }
+
+        .hotel-name {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            letter-spacing: -0.3px;
+        }
+
+        .hotel-stars { color: var(--airbnb-pink); font-size: 14px; letter-spacing: 1px; }
+
+        .hotel-location {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
+        }
+
+        .hotel-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            flex: 1;
+        }
+
+        .hotel-amenities { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+
+        .amenity {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: var(--bg-primary);
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+
+        .hotel-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .hotel-rating { display: flex; align-items: center; gap: 12px; }
+
+        .rating-badge {
+            background: var(--airbnb-pink);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 16px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .rating-text { font-size: 14px; color: var(--text-secondary); font-weight: 600; }
+        .hotel-price-block { text-align: right; }
+
+        .hotel-price { font-size: 24px; font-weight: 800; color: var(--text-primary); }
+        .price-per-night { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+
+        .btn-book {
+            background: var(--airbnb-pink);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            width: 100%;
+            margin-top: 8px;
+            font-family: inherit;
+        }
+
+        .btn-book:hover { background: var(--airbnb-pink-dark); transform: scale(1.02); }
+
+        /* HOTEL DETAIL */
+        .detail-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            transition: all 0.2s;
+            font-family: inherit;
+            margin-bottom: 20px;
+        }
+
+        .detail-back-btn:hover {
+            border-color: var(--airbnb-pink);
+            color: var(--airbnb-pink);
+            transform: translateX(-3px);
+        }
+
+        .detail-hero {
+            position: relative;
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 32px;
+            height: 450px;
+            background: var(--bg-secondary);
+            box-shadow: var(--shadow);
+        }
+
+        .detail-hero-image { width: 100%; height: 100%; object-fit: cover; filter: blur(0.5px); }
+
+        .detail-hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.05) 40%, rgba(26,26,26,0.95) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 32px;
+        }
+
+        .detail-hero-badges {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .hero-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            backdrop-filter: blur(8px);
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .hero-badge.primary { background: var(--airbnb-pink); border-color: transparent; }
+        .hero-badge.gold { background: rgba(255, 215, 0, 0.9); color: #333; border-color: transparent; }
+
+        .detail-hero-content { position: relative; z-index: 2; }
+
+        .detail-hero-title {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .detail-hero-location {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .detail-hero-meta { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+
+        .detail-hero-rating { display: flex; align-items: center; gap: 10px; }
+
+        .detail-hero-rating-badge {
+            background: var(--airbnb-pink);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 18px;
+        }
+
+        .detail-hero-rating-text { font-size: 15px; font-weight: 700; color: white; }
+        .detail-hero-stars { color: var(--gold-color); font-size: 18px; letter-spacing: 2px; }
+
+        .detail-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 32px;
+            align-items: start;
+        }
+
+        .detail-main { display: flex; flex-direction: column; gap: 24px; }
+
+        .detail-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 28px;
+            box-shadow: var(--shadow);
+        }
+
+        .detail-section-title {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: -0.3px;
+        }
+
+        .detail-section-title-icon { font-size: 24px; }
+
+        .detail-description { color: var(--text-secondary); font-size: 15px; line-height: 1.7; margin-bottom: 16px; }
+
+        .advantages-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+
+        .advantage-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 30px;
+            padding: 12px 18px;
+            transition: all 0.25s;
+            cursor: default;
+        }
+
+        .advantage-pill:hover {
+            border-color: var(--airbnb-pink);
+            background: rgba(255, 56, 92, 0.08);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 56, 92, 0.2);
+        }
+
+        .advantage-pill-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 56, 92, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .advantage-pill-text { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+
+        .facts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+
+        .fact-item {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .fact-item:hover { border-color: var(--airbnb-pink); }
+
+        .fact-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .fact-value { font-size: 16px; font-weight: 800; color: var(--text-primary); }
+        .fact-value.small { font-size: 14px; font-weight: 600; color: var(--text-secondary); line-height: 1.5; }
+
+        .detail-amenities-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+
+        .detail-amenity {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .detail-amenity:hover { border-color: var(--airbnb-pink); transform: translateX(3px); }
+
+        .detail-amenity-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .detail-sidebar { position: sticky; top: 140px; }
+
+        .booking-sidebar-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 28px;
+            box-shadow: var(--shadow-hover);
+        }
+
+        .sidebar-price-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .sidebar-price { font-size: 36px; font-weight: 800; color: var(--text-primary); line-height: 1; margin-bottom: 4px; }
+
+        .sidebar-price-per { font-size: 14px; color: var(--text-secondary); font-weight: 600; margin-bottom: 24px; }
+
+        .sidebar-divider { height: 1px; background: var(--border-color); margin: 20px 0; }
+
+        .sidebar-info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; }
+        .sidebar-info-label { color: var(--text-secondary); font-weight: 600; }
+        .sidebar-info-value { color: var(--text-primary); font-weight: 700; }
+        .sidebar-info-value.green { color: var(--success-color); }
+        .sidebar-info-value.pink { color: var(--airbnb-pink); }
+
+        .btn-book-large {
+            width: 100%;
+            background: var(--airbnb-pink);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 25px;
+            font-size: 17px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            font-family: inherit;
+            margin-top: 12px;
+        }
+
+        .btn-book-large:hover { background: var(--airbnb-pink-dark); transform: scale(1.02); }
+
+        .sidebar-note { margin-top: 16px; font-size: 12px; color: var(--text-muted); text-align: center; line-height: 1.5; }
+
+        /* REVIEWS */
+        .reviews-summary {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 32px;
+            align-items: center;
+            padding: 20px;
+            background: var(--bg-primary);
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+        }
+
+        .reviews-summary-score {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .reviews-summary-number {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--airbnb-pink);
+            line-height: 1;
+        }
+
+        .reviews-summary-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
+
+        .reviews-summary-stars {
+            color: var(--gold-color);
+            font-size: 18px;
+            letter-spacing: 2px;
+        }
+
+        .reviews-summary-details {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .reviews-summary-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .reviews-summary-bar-track {
+            flex: 1;
+            height: 8px;
+            background: var(--bg-hover);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .reviews-summary-bar-fill {
+            height: 100%;
+            background: var(--airbnb-pink);
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+
+        .reviews-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+
+        .review-item {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: border-color 0.2s;
+        }
+
+        .review-item:hover { border-color: var(--airbnb-pink); }
+
+        .review-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .review-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 18px;
+            color: white;
+            flex-shrink: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .review-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+        .review-author-info { flex: 1; }
+
+        .review-author-name { font-size: 15px; font-weight: 800; color: var(--text-primary); }
+
+        .review-date { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+
+        .review-rating {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--airbnb-pink);
+            color: white;
+            border-radius: 10px;
+            font-weight: 800;
+            font-size: 14px;
+        }
+
+        .review-text { color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
+
+        .review-admin-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn-review-action {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-review-action:hover { border-color: var(--airbnb-pink); color: var(--airbnb-pink); }
+        .btn-review-action.danger:hover { border-color: var(--error-color); color: var(--error-color); }
+
+        .write-review-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px;
+            background: var(--bg-primary);
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            margin-top: 16px;
+        }
+
+        .write-review-btn:hover {
+            border-color: var(--airbnb-pink);
+            color: var(--airbnb-pink);
+            background: rgba(255, 56, 92, 0.05);
+        }
+
+        .star-selector {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .star-selector .star {
+            font-size: 32px;
+            color: var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .star-selector .star.active, .star-selector .star:hover { color: var(--gold-color); transform: scale(1.1); }
+
+        .rating-input-value {
+            display: inline-block;
+            margin-left: 12px;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--airbnb-pink);
+            vertical-align: middle;
+        }
+
+        /* MODALS */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 32px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            background: none;
+            border: none;
+            transition: color 0.2s;
+        }
+
+        .close-modal:hover { color: var(--airbnb-pink); }
+
+        .modal-title { font-size: 24px; font-weight: 800; margin-bottom: 8px; color: var(--text-primary); }
+        .modal-subtitle { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; }
+
+        .modal-hotel-info {
+            background: var(--bg-primary);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .booking-form { display: flex; flex-direction: column; gap: 16px; }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+        .form-group label { font-size: 14px; font-weight: 700; color: var(--text-secondary); }
+
+        .form-group input, .form-group textarea, .form-group select {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--airbnb-pink); }
+        .form-group input.error, .form-group textarea.error { border-color: var(--error-color); }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+
+        .field-error {
+            color: var(--error-color);
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 2px;
+            display: none;
+        }
+
+        .field-error.show { display: block; }
+
+        .btn-submit {
+            background: var(--airbnb-pink);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            font-family: inherit;
+        }
+
+        .btn-submit:hover { background: var(--airbnb-pink-dark); transform: scale(1.02); }
+        .btn-submit:disabled { background: var(--border-color); cursor: not-allowed; transform: none; opacity: 0.6; }
+
+        .success-message {
+            background: #008234;
+            color: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+            font-weight: 600;
+        }
+
+        .success-message.show { display: block; }
+
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .auth-form { display: flex; flex-direction: column; gap: 16px; }
+
+        .auth-links { text-align: center; margin-top: 10px; color: var(--text-secondary); }
+
+        .auth-links a { color: var(--airbnb-pink); text-decoration: none; cursor: pointer; font-weight: 600; }
+        .auth-links a:hover { text-decoration: underline; }
+
+        .social-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 20px 0 16px;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .social-divider::before, .social-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .social-buttons { display: flex; flex-direction: column; gap: 10px; }
+
+        .btn-social {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 25px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-social:hover { border-color: var(--text-secondary); transform: translateY(-1px); }
+        .btn-social .social-icon { width: 22px; height: 22px; flex-shrink: 0; }
+        .btn-social.google:hover { border-color: var(--google-color); }
+        .btn-social.yandex:hover { border-color: var(--yandex-color); }
+        .btn-social.vk:hover { border-color: var(--vk-color); }
+
+        .auth-notice {
+            background: rgba(255, 56, 92, 0.1);
+            border: 1px solid var(--airbnb-pink);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .auth-notice-icon { font-size: 24px; }
+        .auth-notice-text { font-size: 14px; color: var(--text-primary); font-weight: 600; }
+
+        /* EMAIL CODE */
+        .code-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .code-input {
+            width: 52px;
+            height: 64px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 12px;
+            font-size: 26px;
+            font-weight: 800;
+            text-align: center;
+            outline: none;
+            font-family: 'Courier New', monospace;
+            transition: border-color 0.2s, transform 0.1s;
+        }
+
+        .code-input:focus { border-color: var(--airbnb-pink); transform: scale(1.05); }
+        .code-input.filled { border-color: var(--airbnb-pink); background: rgba(255, 56, 92, 0.08); }
+
+        .code-timer {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .code-timer strong { color: var(--airbnb-pink); }
+
+        .email-sending-status {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 10px;
+            background: var(--bg-primary);
+            border-radius: var(--radius);
+            margin-bottom: 12px;
+        }
+
+        .email-sending-status.sending { color: var(--airbnb-pink); }
+        .email-sending-status.success { color: var(--success-color); }
+
+        /* Avatar upload */
+        .avatar-upload-section { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .avatar-preview-wrapper { position: relative; width: 100px; height: 100px; }
+
+        .avatar-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: var(--airbnb-pink);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: 800;
+            color: white;
+            overflow: hidden;
+            border: 3px solid var(--border-color);
+            transition: border-color 0.2s;
+        }
+
+        .avatar-preview:hover { border-color: var(--airbnb-pink); }
+        .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+        .avatar-upload-btn {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--airbnb-pink);
+            border: 3px solid var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+            color: white;
+            font-size: 14px;
+        }
+
+        .avatar-upload-btn:hover { background: var(--airbnb-pink-dark); transform: scale(1.1); }
+
+        .avatar-hint { font-size: 12px; color: var(--text-muted); text-align: center; }
+
+        .profile-info { display: flex; flex-direction: column; gap: 16px; }
+        .profile-field { display: flex; flex-direction: column; gap: 4px; }
+
+        .profile-field-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .profile-field-value { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+
+        .social-login-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .social-login-badge .social-icon { width: 16px; height: 16px; }
+
+        /* ADMIN PANEL */
+        .admin-panel { display: flex; flex-direction: column; gap: 20px; }
+
+        .admin-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0;
+            overflow-x: auto;
+        }
+
+        .admin-tab {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .admin-tab:hover { color: var(--text-primary); }
+        .admin-tab.active { color: var(--airbnb-pink); border-bottom-color: var(--airbnb-pink); }
+
+        .admin-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .admin-stat-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+        }
+
+        .admin-stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .admin-stat-value { font-size: 28px; font-weight: 800; color: var(--airbnb-pink); }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-primary);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .admin-table th {
+            background: var(--bg-card);
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .admin-table td {
+            padding: 14px 16px;
+            font-size: 14px;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .admin-table tr:last-child td { border-bottom: none; }
+        .admin-table tr:hover td { background: var(--bg-hover); }
+
+        .role-badge-small {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .role-badge-small.owner { background: var(--owner-color); color: #333; }
+        .role-badge-small.moderator { background: var(--moderator-color); color: #fff; }
+        .role-badge-small.user { background: var(--bg-hover); color: var(--text-secondary); }
+
+        .btn-admin-action {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            margin-right: 4px;
+        }
+
+        .btn-admin-action:hover { border-color: var(--airbnb-pink); color: var(--airbnb-pink); }
+        .btn-admin-action.danger:hover { border-color: var(--error-color); color: var(--error-color); }
+        .btn-admin-action.success:hover { border-color: var(--success-color); color: var(--success-color); }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+
+        /* FOOTER */
+        .footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 48px 0 24px;
+            margin-top: 40px;
+        }
+
+        .footer-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-brand { display: flex; flex-direction: column; gap: 16px; }
+
+        .footer-logo {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--airbnb-pink);
+            text-decoration: none;
+            letter-spacing: -0.5px;
+            cursor: pointer;
+        }
+
+        .footer-logo span { color: var(--text-primary); }
+
+        .footer-description { color: var(--text-secondary); font-size: 14px; line-height: 1.6; max-width: 340px; }
+
+        .footer-socials { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+
+        .social-link {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .social-link svg { width: 22px; height: 22px; transition: transform 0.25s; position: relative; z-index: 1; }
+        .social-link:hover { transform: translateY(-3px); border-color: transparent; }
+        .social-link:hover svg { transform: scale(1.1); }
+        .social-link.vk:hover { background: var(--vk-color); }
+        .social-link.youtube:hover { background: var(--youtube-color); }
+        .social-link.telegram:hover { background: var(--telegram-color); }
+        .social-link.whatsapp:hover { background: var(--whatsapp-color); }
+        .social-link.instagram:hover { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+        .social-link:hover svg path { fill: #ffffff; }
+
+        .footer-column { display: flex; flex-direction: column; gap: 14px; }
+
+        .footer-column-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 6px;
+        }
+
+        .footer-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s, padding-left 0.2s;
+            cursor: pointer;
+            display: inline-block;
+            width: fit-content;
+        }
+
+        .footer-link:hover { color: var(--airbnb-pink); padding-left: 4px; }
+
+        .footer-contacts { display: flex; flex-direction: column; gap: 12px; }
+
+        .footer-contact-item { display: flex; align-items: center; gap: 10px; color: var(--text-secondary); font-size: 14px; font-weight: 600; }
+
+        .footer-contact-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid var(--border-color);
+            padding-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .footer-copyright { color: var(--text-muted); font-size: 14px; font-weight: 600; }
+        .footer-copyright strong { color: var(--airbnb-pink); }
+
+        .footer-legal { display: flex; gap: 20px; flex-wrap: wrap; }
+
+        .footer-legal-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: color 0.2s;
+            cursor: pointer;
+        }
+
+        .footer-legal-link:hover { color: var(--airbnb-pink); }
+
+        .footer-company-info {
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1.6;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px dashed var(--border-color);
+            text-align: center;
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 900px) {
+            .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+            .detail-layout { grid-template-columns: 1fr; }
+            .detail-sidebar { position: static; }
+            .detail-hero { height: 350px; }
+            .detail-hero-title { font-size: 32px; }
+            .reviews-summary { grid-template-columns: 1fr; text-align: center; }
+        }
+
+        @media (max-width: 768px) {
+            .hotel-card { flex-direction: column; }
+            .hotel-image-container { width: 100%; height: 200px; }
+            .search-bar { flex-direction: column; border-radius: 20px; padding: 12px; }
+            .btn-search { padding: 12px; width: 100%; border-radius: 20px; }
+            .filters-grid { grid-template-columns: 1fr; }
+            .hotel-footer { flex-direction: column; align-items: flex-start; }
+            .hotel-price-block { text-align: left; width: 100%; }
+            .btn-book { width: 100%; }
+            .user-name { display: none; }
+            .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+            .footer-bottom { flex-direction: column; text-align: center; }
+            .footer-legal { justify-content: center; }
+            .detail-hero { height: 300px; }
+            .detail-hero-title { font-size: 26px; }
+            .detail-hero-overlay { padding: 20px; }
+            .detail-section { padding: 20px; }
+            .sidebar-price { font-size: 28px; }
+            .advantages-grid { grid-template-columns: 1fr; }
+            .code-input { width: 42px; height: 54px; font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <div class="header-top">
+                <a href="#" class="logo" onclick="goHome(); return false;">bublik<span>bnb</span></a>
+                
+                <div class="header-actions" id="guestActions">
+                    <button class="btn-header" onclick="openAuthModal('login')">Войти</button>
+                    <button class="btn-header" onclick="openAuthModal('register')">Регистрация</button>
+                </div>
+                
+                <div class="user-info" id="userInfo">
+                    <div class="user-avatar" id="userAvatar" onclick="toggleUserMenu()">?</div>
+                    <span class="user-name" id="userName" onclick="toggleUserMenu()">Пользователь</span>
+                    <span class="user-role-tag" id="userRoleTag" style="display:none;"></span>
+                    
+                    <div class="user-menu" id="userMenu">
+                        <div class="user-menu-item" onclick="openProfileModal()">
+                            <span>👤</span> Мой профиль
+                        </div>
+                        <div class="user-menu-item" onclick="openAvatarModal()">
+                            <span>🖼️</span> Сменить аватар
+                        </div>
+                        <div class="user-menu-item" id="adminPanelMenuItem" style="display:none;" onclick="openAdminPanel()">
+                            <span>🛡️</span> Панель управления
+                        </div>
+                        <div class="user-menu-divider"></div>
+                        <div class="user-menu-item danger" onclick="logout()">
+                            <span>🚪</span> Выйти
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="search-bar" id="searchBar">
+                <div class="search-field">
+                    <label>Куда</label>
+                    <input type="text" id="searchInput" placeholder="Город или отель">
+                </div>
+                <div class="search-field">
+                    <label>Заезд</label>
+                    <input type="date" id="checkIn">
+                </div>
+                <div class="search-field">
+                    <label>Выезд</label>
+                    <input type="date" id="checkOut">
+                </div>
+                <div class="search-field">
+                    <label>Гости</label>
+                    <select id="guests">
+                        <option value="1">1 гость</option>
+                        <option value="2">2 гостя</option>
+                        <option value="3">3 гостя</option>
+                        <option value="4">4 гостя</option>
+                    </select>
+                </div>
+                <button class="btn-search" onclick="applySearch()">Найти</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="page-view active" id="homeView">
+            <div class="filters-section">
+                <div class="filters-header">
+                    <h2 class="filters-title">Фильтры</h2>
+                    <button class="btn-clear" onclick="clearFilters()">Очистить всё</button>
+                </div>
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label>Удобства</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="freeCancellation" onchange="applyFilters()">
+                            <label for="freeCancellation">Бесплатная отмена</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="breakfastIncluded" onchange="applyFilters()">
+                            <label for="breakfastIncluded">Завтрак включён</label>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label>Цена за ночь</label>
+                        <select id="priceRange" onchange="applyFilters()">
+                            <option value="all">Любая</option>
+                            <option value="0-3000">до 3 000 ₽</option>
+                            <option value="3000-5000">3 000 – 5 000 ₽</option>
+                            <option value="5000-10000">5 000 – 10 000 ₽</option>
+                            <option value="10000+">более 10 000 ₽</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Рейтинг</label>
+                        <select id="rating" onchange="applyFilters()">
+                            <option value="all">Любой</option>
+                            <option value="7">7+ (Хорошо)</option>
+                            <option value="8">8+ (Очень хорошо)</option>
+                            <option value="9">9+ (Превосходно)</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Тип жилья</label>
+                        <select id="propertyType" onchange="applyFilters()">
+                            <option value="all">Все типы</option>
+                            <option value="hotel">Отель</option>
+                            <option value="apartment">Апартаменты</option>
+                            <option value="resort">Курорт</option>
+                            <option value="hostel">Хостел</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-info">
+                <div class="results-count">Найдено: <strong id="resultsCount">0</strong> вариантов</div>
+                <select class="sort-select" id="sortBy" onchange="sortHotels()">
+                    <option value="recommended">Рекомендованные</option>
+                    <option value="priceAsc">Сначала дешевле</option>
+                    <option value="priceDesc">Сначала дороже</option>
+                    <option value="rating">По рейтингу</option>
+                </select>
+            </div>
+
+            <div class="hotels-list" id="hotelsList"></div>
+        </div>
+
+        <div class="page-view" id="detailView">
+            <button class="detail-back-btn" onclick="goHome()">← Назад к списку отелей</button>
+            <div id="detailContent"></div>
+        </div>
+
+        <div class="page-view" id="adminView">
+            <button class="detail-back-btn" onclick="goHome()">← На главную</button>
+            <div id="adminContent"></div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="#" class="footer-logo" onclick="goHome(); return false;">bublik<span>bnb</span></a>
+                    <p class="footer-description">
+                        Платформа для бронирования отелей, апартаментов и курортов по всей России. 
+                        Мы помогаем найти идеальное место для отдыха — быстро, удобно и без лишних хлопот.
+                    </p>
+                    <div class="footer-socials">
+                        <a class="social-link vk" href="https://vk.com/bublikbnb" target="_blank" title="ВКонтакте">
+                            <svg viewBox="0 0 24 24"><path fill="#0077FF" d="M13.162 18.994c.609 0 .858-.406.851-.915-.031-1.917.714-2.949 2.059-1.604 1.488 1.488 1.796 2.519 3.603 2.519h3.2c.808 0 1.126-.26 1.126-.668 0-.863-1.421-2.386-2.625-3.504-1.686-1.565-1.765-1.602-.313-3.486 1.801-2.339 4.157-5.336 2.073-5.336h-3.981c-.772 0-.828.435-1.103 1.083-.995 2.347-2.886 5.387-3.604 4.922-.751-.485-.407-2.406-.35-5.261.015-.754.011-1.271-1.141-1.539-.629-.145-1.241-.205-1.809-.205-2.273 0-3.841.953-2.95 1.119 1.571.293 1.42 3.692 1.054 5.16-.638 2.556-3.036-2.024-4.035-4.305-.241-.548-.315-.974-1.175-.974H.831C.133 5.878 0 6.305 0 6.674c0 .781 1.878 4.337 5.588 9.238 2.675 3.527 6.641 4.582 9.074 4.582z"/></svg>
+                        </a>
+                        <a class="social-link youtube" href="https://youtube.com/@bublikbnb" target="_blank" title="YouTube">
+                            <svg viewBox="0 0 24 24"><path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                        </a>
+                        <a class="social-link telegram" href="https://t.me/bublikbnb" target="_blank" title="Telegram-канал">
+                            <svg viewBox="0 0 24 24"><path fill="#26A5E4" d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                        </a>
+                        <a class="social-link whatsapp" href="https://wa.me/79001234567" target="_blank" title="WhatsApp">
+                            <svg viewBox="0 0 24 24"><path fill="#25D366" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                        </a>
+                        <a class="social-link instagram" href="https://instagram.com/bublikbnb" target="_blank" title="Instagram">
+                            <svg viewBox="0 0 24 24"><path fill="#E4405F" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="footer-column">
+                    <h4 class="footer-column-title">Компания</h4>
+                    <a class="footer-link" onclick="showFooterInfo('О нас')">О нас</a>
+                    <a class="footer-link" onclick="showFooterInfo('Карьера')">Карьера</a>
+                    <a class="footer-link" onclick="showFooterInfo('Пресс-центр')">Пресс-центр</a>
+                    <a class="footer-link" onclick="showFooterInfo('Блог')">Блог</a>
+                    <a class="footer-link" onclick="showFooterInfo('Партнёрам')">Партнёрам</a>
+                </div>
+                
+                <div class="footer-column">
+                    <h4 class="footer-column-title">Помощь</h4>
+                    <a class="footer-link" onclick="showFooterInfo('Центр помощи')">Центр помощи</a>
+                    <a class="footer-link" onclick="showFooterInfo('Правила бронирования')">Правила бронирования</a>
+                    <a class="footer-link" onclick="showFooterInfo('Способы оплаты')">Способы оплаты</a>
+                    <a class="footer-link" onclick="showFooterInfo('Возврат средств')">Возврат средств</a>
+                    <a class="footer-link" onclick="showFooterInfo('Безопасность')">Безопасность</a>
+                </div>
+                
+                <div class="footer-column">
+                    <h4 class="footer-column-title">Контакты</h4>
+                    <div class="footer-contacts">
+                        <div class="footer-contact-item">
+                            <div class="footer-contact-icon">📞</div>
+                            <span>+7 (900) 123-45-67</span>
+                        </div>
+                        <div class="footer-contact-item">
+                            <div class="footer-contact-icon">✉️</div>
+                            <span>support@bublikbnb.ru</span>
+                        </div>
+                        <div class="footer-contact-item">
+                            <div class="footer-contact-icon">📍</div>
+                            <span>Москва, ул. Примерная, 1</span>
+                        </div>
+                        <div class="footer-contact-item">
+                            <div class="footer-contact-icon">🕐</div>
+                            <span>Круглосуточно, 24/7</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <div class="footer-copyright">
+                    © 2026 <strong>slizariochervyachok</strong>. Все права защищены.
+                </div>
+                <div class="footer-legal">
+                    <a class="footer-legal-link" onclick="showFooterInfo('Условия использования')">Условия использования</a>
+                    <a class="footer-legal-link" onclick="showFooterInfo('Политика конфиденциальности')">Политика конфиденциальности</a>
+                    <a class="footer-legal-link" onclick="showFooterInfo('Cookies')">Cookies</a>
+                </div>
+            </div>
+            
+            <div class="footer-company-info">
+                ООО «Слизариочервячок» · ИНН 1234567890 · ОГРН 1234567890123 · Юридический адрес: 101000, г. Москва, ул. Примерная, д. 1, офис 100<br>
+                BublikBnB — сервис онлайн-бронирования отелей, апартаментов и курортов по всей России
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODALS -->
+    <div class="modal" id="bookingModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('bookingModal')">&times;</button>
+            <h2 class="modal-title">Бронирование</h2>
+            <div class="modal-hotel-info" id="selectedHotelInfo"></div>
+            <form class="booking-form" id="bookingForm" novalidate>
+                <div class="form-group">
+                    <label>👤 Полное имя (Имя и Фамилия)</label>
+                    <input type="text" id="fullName" required placeholder="Иван Петров" autocomplete="name">
+                    <div class="field-error" id="fullNameError">Введите корректное имя и фамилию (только буквы)</div>
+                </div>
+                <div class="form-group">
+                    <label>📞 Телефон</label>
+                    <input type="tel" id="phone" required placeholder="+7 900 000-00-00" autocomplete="tel">
+                    <div class="field-error" id="phoneError">Введите корректный номер телефона</div>
+                </div>
+                <div class="form-group">
+                    <label>✉️ Email</label>
+                    <input type="email" id="email" required placeholder="you@example.com" autocomplete="email">
+                    <div class="field-error" id="emailError">Введите корректный email</div>
+                </div>
+                <div class="form-group">
+                    <label>📝 Особые пожелания</label>
+                    <textarea id="specialRequests" placeholder="Например, поздний заезд"></textarea>
+                </div>
+                <button type="submit" class="btn-submit">Подтвердить бронирование</button>
+            </form>
+            <div class="success-message" id="successMessage">✅ Бронирование подтверждено! Детали отправлены на email.</div>
+        </div>
+    </div>
+
+    <div class="modal" id="authRequiredModal">
+        <div class="modal-content" style="max-width: 450px;">
+            <button class="close-modal" onclick="closeModal('authRequiredModal')">&times;</button>
+            <h2 class="modal-title">Требуется вход</h2>
+            <div class="auth-notice">
+                <div class="auth-notice-icon">🔒</div>
+                <div class="auth-notice-text">Чтобы забронировать отель, вам необходимо войти в свой аккаунт или зарегистрироваться.</div>
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 20px;">
+                <button class="btn-submit" onclick="closeModal('authRequiredModal'); openAuthModal('login')" style="flex: 1;">Войти</button>
+                <button class="btn-submit" onclick="closeModal('authRequiredModal'); openAuthModal('register')" style="flex: 1; background: transparent; border: 1px solid var(--border-color);">Регистрация</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('loginModal')">&times;</button>
+            <h2 class="modal-title">Вход</h2>
+            <p class="modal-subtitle">Войдите в свой аккаунт</p>
+            <form class="auth-form" id="loginForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" required placeholder="Введите email">
+                </div>
+                <div class="form-group">
+                    <label>Пароль</label>
+                    <input type="password" id="loginPassword" required placeholder="Введите пароль">
+                </div>
+                <button type="submit" class="btn-submit">Войти</button>
+            </form>
+            <div class="social-divider">или войдите через</div>
+            <div class="social-buttons">
+                <button class="btn-social google" onclick="openSocialAuth('Google')">
+                    <svg class="social-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                    Войти через Google
+                </button>
+                <button class="btn-social yandex" onclick="openSocialAuth('Яндекс')">
+                    <svg class="social-icon" viewBox="0 0 24 24"><path fill="#FC3F1D" d="M2.04 12c0-5.523 4.476-10 10-10 5.522 0 10 4.477 10 10s-4.478 10-10 10c-5.524 0-10-4.477-10-10z"/><path fill="#fff" d="M13.32 7.666h-.924c-1.694 0-2.585.858-2.585 2.123 0 1.43.616 2.1 1.881 2.959l1.045.704-3.003 4.487H7.49l2.695-4.014c-1.55-1.111-2.42-2.19-2.42-4.015 0-2.288 1.595-3.85 4.62-3.85h3.003v11.868H13.32V7.666z"/></svg>
+                    Войти через Яндекс
+                </button>
+                <button class="btn-social vk" onclick="openSocialAuth('VK')">
+                    <svg class="social-icon" viewBox="0 0 24 24"><path fill="#0077FF" d="M13.162 18.994c.609 0 .858-.406.851-.915-.031-1.917.714-2.949 2.059-1.604 1.488 1.488 1.796 2.519 3.603 2.519h3.2c.808 0 1.126-.26 1.126-.668 0-.863-1.421-2.386-2.625-3.504-1.686-1.565-1.765-1.602-.313-3.486 1.801-2.339 4.157-5.336 2.073-5.336h-3.981c-.772 0-.828.435-1.103 1.083-.995 2.347-2.886 5.387-3.604 4.922-.751-.485-.407-2.406-.35-5.261.015-.754.011-1.271-1.141-1.539-.629-.145-1.241-.205-1.809-.205-2.273 0-3.841.953-2.95 1.119 1.571.293 1.42 3.692 1.054 5.16-.638 2.556-3.036-2.024-4.035-4.305-.241-.548-.315-.974-1.175-.974H.831C.133 5.878 0 6.305 0 6.674c0 .781 1.878 4.337 5.588 9.238 2.675 3.527 6.641 4.582 9.074 4.582z"/></svg>
+                    Войти через VK
+                </button>
+            </div>
+            <div class="auth-links" style="margin-top: 20px;">Нет аккаунта? <a onclick="switchAuth('register')">Зарегистрируйтесь</a></div>
+        </div>
+    </div>
+
+    <div class="modal" id="registerModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('registerModal')">&times;</button>
+            <h2 class="modal-title">Регистрация</h2>
+            <p class="modal-subtitle">Создайте свой аккаунт</p>
+            <form class="auth-form" id="registerForm">
+                <div class="form-group">
+                    <label>Имя</label>
+                    <input type="text" id="regName" required placeholder="Как вас зовут?">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="regEmail" required placeholder="Введите email">
+                </div>
+                <div class="form-group">
+                    <label>Пароль</label>
+                    <input type="password" id="regPassword" required placeholder="Придумайте пароль (мин. 6 символов)">
+                </div>
+                <button type="submit" class="btn-submit">Зарегистрироваться</button>
+            </form>
+            <div class="social-divider">или зарегистрируйтесь через</div>
+            <div class="social-buttons">
+                <button class="btn-social google" onclick="openSocialAuth('Google')">
+                    <svg class="social-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                    Зарегистрироваться через Google
+                </button>
+                <button class="btn-social yandex" onclick="openSocialAuth('Яндекс')">
+                    <svg class="social-icon" viewBox="0 0 24 24"><path fill="#FC3F1D" d="M2.04 12c0-5.523 4.476-10 10-10 5.522 0 10 4.477 10 10s-4.478 10-10 10c-5.524 0-10-4.477-10-10z"/><path fill="#fff" d="M13.32 7.666h-.924c-1.694 0-2.585.858-2.585 2.123 0 1.43.616 2.1 1.881 2.959l1.045.704-3.003 4.487H7.49l2.695-4.014c-1.55-1.111-2.42-2.19-2.42-4.015 0-2.288 1.595-3.85 4.62-3.85h3.003v11.868H13.32V7.666z"/></svg>
+                    Зарегистрироваться через Яндекс
+                </button>
+                <button class="btn-social vk" onclick="openSocialAuth('VK')">
+                    <svg class="social-icon" viewBox="0 0 24 24"><path fill="#0077FF" d="M13.162 18.994c.609 0 .858-.406.851-.915-.031-1.917.714-2.949 2.059-1.604 1.488 1.488 1.796 2.519 3.603 2.519h3.2c.808 0 1.126-.26 1.126-.668 0-.863-1.421-2.386-2.625-3.504-1.686-1.565-1.765-1.602-.313-3.486 1.801-2.339 4.157-5.336 2.073-5.336h-3.981c-.772 0-.828.435-1.103 1.083-.995 2.347-2.886 5.387-3.604 4.922-.751-.485-.407-2.406-.35-5.261.015-.754.011-1.271-1.141-1.539-.629-.145-1.241-.205-1.809-.205-2.273 0-3.841.953-2.95 1.119 1.571.293 1.42 3.692 1.054 5.16-.638 2.556-3.036-2.024-4.035-4.305-.241-.548-.315-.974-1.175-.974H.831C.133 5.878 0 6.305 0 6.674c0 .781 1.878 4.337 5.588 9.238 2.675 3.527 6.641 4.582 9.074 4.582z"/></svg>
+                    Зарегистрироваться через VK
+                </button>
+            </div>
+            <div class="auth-links" style="margin-top: 20px;">Уже есть аккаунт? <a onclick="switchAuth('login')">Войдите</a></div>
+        </div>
+    </div>
+
+    <div class="modal" id="socialAuthModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('socialAuthModal')">&times;</button>
+            <div class="social-login-badge" id="socialBadge">
+                <svg class="social-icon" id="socialBadgeIcon" viewBox="0 0 24 24"></svg>
+                <span id="socialBadgeText">Google</span>
+            </div>
+            <h2 class="modal-title">Вход</h2>
+            <p class="modal-subtitle">Заполните данные для входа</p>
+            <form class="auth-form" id="socialAuthForm">
+                <div class="form-group">
+                    <label>Имя</label>
+                    <input type="text" id="socialName" required placeholder="Введите ваше имя">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="socialEmail" required placeholder="Введите email">
+                </div>
+                <button type="submit" class="btn-submit" id="socialSubmitBtn">Продолжить</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Email Code Verification Modal -->
+    <div class="modal" id="emailCodeModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="close-modal" onclick="closeModal('emailCodeModal')">&times;</button>
+            <h2 class="modal-title" id="emailCodeTitle">Подтверждение</h2>
+            <p class="modal-subtitle" id="emailCodeSubtitle">Мы отправили код на вашу почту</p>
+            
+            <div class="email-sending-status" id="emailSendingStatus">📨 Отправляем код на почту...</div>
+            
+            <div class="code-inputs" id="codeInputs">
+                <input type="text" class="code-input" maxlength="1" inputmode="numeric" oninput="moveToNext(this, 0)">
+                <input type="text" class="code-input" maxlength="1" inputmode="numeric" oninput="moveToNext(this, 1)">
+                <input type="text" class="code-input" maxlength="1" inputmode="numeric" oninput="moveToNext(this, 2)">
+                <input type="text" class="code-input" maxlength="1" inputmode="numeric" oninput="moveToNext(this, 3)">
+                <input type="text" class="code-input" maxlength="1" inputmode="numeric" oninput="moveToNext(this, 4)">
+                <input type="text" class="code-input" maxlength="1" inputmode="numeric" oninput="moveToNext(this, 5)">
+            </div>
+            
+            <div class="code-timer">Код действителен ещё <strong id="codeTimer">05:00</strong></div>
+            <div id="codeError" class="field-error" style="text-align:center;">Неверный код. Попробуйте ещё раз.</div>
+            
+            <button class="btn-submit" onclick="verifyEmailCode()" id="verifyCodeBtn" style="width:100%;">Подтвердить</button>
+            
+            <div class="auth-links" style="margin-top: 16px;">
+                Не получили код? <a onclick="resendCode()">Отправить заново</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="avatarModal">
+        <div class="modal-content" style="max-width: 450px;">
+            <button class="close-modal" onclick="closeModal('avatarModal')">&times;</button>
+            <h2 class="modal-title">Сменить аватар</h2>
+            <div class="avatar-upload-section">
+                <div class="avatar-preview-wrapper">
+                    <div class="avatar-preview" id="avatarPreview">?</div>
+                    <label class="avatar-upload-btn" for="avatarInput" title="Загрузить фото">📷</label>
+                    <input type="file" id="avatarInput" accept="image/*" style="display: none;" onchange="handleAvatarUpload(event)">
+                </div>
+                <div class="avatar-hint">Нажмите на 📷 чтобы загрузить фото<br>Поддерживаются: JPG, PNG, GIF, WEBP (до 5 МБ)</div>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn-submit" onclick="saveAvatar()" style="flex: 1;">Сохранить</button>
+                <button class="btn-submit" onclick="removeAvatar()" style="flex: 1; background: transparent; border: 1px solid var(--border-color);">Удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="profileModal">
+        <div class="modal-content" style="max-width: 450px;">
+            <button class="close-modal" onclick="closeModal('profileModal')">&times;</button>
+            <h2 class="modal-title">Мой профиль</h2>
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+                <div class="user-avatar" id="profileAvatar" style="width: 64px; height: 64px; font-size: 24px;">?</div>
+                <div>
+                    <div style="font-size: 20px; font-weight: 800;" id="profileName">Пользователь</div>
+                    <div style="font-size: 14px; color: var(--text-secondary);" id="profileEmail">email@example.com</div>
+                </div>
+            </div>
+            <div class="profile-info">
+                <div class="profile-field">
+                    <div class="profile-field-label">Имя</div>
+                    <div class="profile-field-value" id="profileFieldName">-</div>
+                </div>
+                <div class="profile-field">
+                    <div class="profile-field-label">Email</div>
+                    <div class="profile-field-value" id="profileFieldEmail">-</div>
+                </div>
+                <div class="profile-field">
+                    <div class="profile-field-label">Роль</div>
+                    <div class="profile-field-value" id="profileFieldRole">-</div>
+                </div>
+                <div class="profile-field">
+                    <div class="profile-field-label">Способ входа</div>
+                    <div class="profile-field-value" id="profileFieldProvider">Email</div>
+                </div>
+                <div class="profile-field">
+                    <div class="profile-field-label">Дата регистрации</div>
+                    <div class="profile-field-value" id="profileFieldDate">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="infoModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="close-modal" onclick="closeModal('infoModal')">&times;</button>
+            <h2 class="modal-title" id="infoModalTitle">Информация</h2>
+            <p style="color: var(--text-secondary); font-size: 15px; line-height: 1.6;" id="infoModalText">Это демонстрационное приложение.</p>
+        </div>
+    </div>
+
+<script>
+    // ============ EMAILJS CONFIG ============
+    const EMAILJS_PUBLIC_KEY = "w7qeICS9Mkrm8NJ0q";
+    const EMAILJS_SERVICE_ID = "service_ssm6yo6";
+    const EMAILJS_TEMPLATE_ID = "template_jrpb9ca";
+
+    // Инициализация после загрузки SDK
+    function initEmailJS() {
+        if (typeof emailjs !== 'undefined') {
+            emailjs.init(EMAILJS_PUBLIC_KEY);
+            console.log('✅ EmailJS инициализирован');
+            return true;
+        } else {
+            console.error('❌ EmailJS SDK не загружен');
+            return false;
+        }
+    }
+
+    // ============ ДАННЫЕ ОТЕЛЕЙ ============
+    const hotels = [
+        { id: 1, name: "Гранд Отель Москва", location: "moscow", rating: 8.7, price: 7500,
+          image: "https://s.101hotelscdn.ru/uploads/image/hotel_image/303/5188376.jpg",
+          description: "Роскошный отель в самом сердце столицы, в нескольких минутах от Кремля",
+          fullDescription: "Гранд Отель Москва — это отель премиум-класса, расположенный в историческом центре столицы.",
+          founded: 1998, type: "hotel", freeCancellation: true, breakfastIncluded: true,
+          amenities: ["Wi-Fi", "Бассейн", "Спа", "Ресторан"],
+          advantages: ["Вид на Кремль", "Рядом с Красной площадью", "Спа-центр", "Авторская кухня", "Консьерж 24/7", "Паркинг", "Фитнес", "Трансфер"],
+          rooms: 320, checkIn: "14:00", checkOut: "12:00", petsAllowed: false,
+          address: "г. Москва, ул. Тверская, д. 15" },
+        { id: 2, name: "Невский Палас", location: "spb", rating: 9.2, price: 12000,
+          image: "https://selectionnevsky.cosmosgroup.ru/files/hotel_gallery_items/2037_1732541696.webp",
+          description: "Элитный отель на Невском проспекте",
+          fullDescription: "Невский Палас — легендарный пятизвёздочный отель на главной улице Петербурга.",
+          founded: 1912, type: "hotel", freeCancellation: true, breakfastIncluded: true,
+          amenities: ["Wi-Fi", "Фитнес", "Консьерж", "Бар"],
+          advantages: ["Историческое здание", "Вид на Невский", "Мишленовский ресторан", "Дизайн интерьеров", "Спа с хаммамом", "Дворецкий", "Лимузин", "Детский клуб"],
+          rooms: 285, checkIn: "15:00", checkOut: "12:00", petsAllowed: true,
+          address: "г. Санкт-Петербург, Невский пр., д. 57" },
+        { id: 3, name: "Сочи Марина", location: "sochi", rating: 8.4, price: 4500,
+          image: "https://static.tildacdn.com/tild6238-3433-4364-b862-613466376332/Frame_51.jpg",
+          description: "Курортный отель с собственным пляжем",
+          fullDescription: "Сочи Марина — современный курортный отель на первой линии Черноморского побережья.",
+          founded: 2018, type: "resort", freeCancellation: false, breakfastIncluded: true,
+          amenities: ["Пляж", "Бассейн", "Детский клуб", "Парковка"],
+          advantages: ["Собственный пляж", "Вид на море", "3 бассейна", "Анимация", "Аквапарк", "Спа", "Всё включено", "Теннис"],
+          rooms: 450, checkIn: "14:00", checkOut: "11:00", petsAllowed: false,
+          address: "г. Сочи, ул. Приморская, д. 3" },
+        { id: 4, name: "Казань Пантера", location: "kazan", rating: 8.1, price: 3800,
+          image: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/16/f1/59/f4/caption.jpg?w=900&h=500&s=1",
+          description: "Современный отель на берегу Казанки",
+          fullDescription: "Казань Пантера — стильный отель на берегу реки Казанки.",
+          founded: 2020, type: "hotel", freeCancellation: true, breakfastIncluded: false,
+          amenities: ["Wi-Fi", "Аквапарк", "Спа", "Ресторан"],
+          advantages: ["Рядом аквапарк", "Вид на Кремль", "Панорамный ресторан", "Дизайн", "Бассейн", "Детская зона", "Велосипеды", "Конференц-залы"],
+          rooms: 210, checkIn: "14:00", checkOut: "12:00", petsAllowed: true,
+          address: "г. Казань, ул. Набережная, д. 12" },
+        { id: 5, name: "Балчуг Кемпински", location: "moscow", rating: 9.5, price: 15000,
+          image: "https://liveinmsk.ru/up/photos/album/ypertsov/0007.jpg",
+          description: "Легендарный отель с видом на Кремль",
+          fullDescription: "Балчуг Кемпински — один из самых известных пятизвёздочных отелей России.",
+          founded: 1992, type: "hotel", freeCancellation: true, breakfastIncluded: true,
+          amenities: ["Wi-Fi", "Спа", "Бассейн", "Ресторан", "Бар"],
+          advantages: ["Вид на Кремль", "Историческое здание", "Ресторан «Балчуг»", "Спа 2500 м²", "Панорамный бассейн", "Няня", "VIP-трансфер", "Паркинг"],
+          rooms: 232, checkIn: "15:00", checkOut: "12:00", petsAllowed: true,
+          address: "г. Москва, ул. Балчуг, д. 1" },
+        { id: 6, name: "Астория", location: "spb", rating: 9.0, price: 11000,
+          image: "https://s0.rbk.ru/v6_top_pics/media/img/7/66/754853499447667.png",
+          description: "Исторический отель в центре Петербурга",
+          fullDescription: "Отель Астория — один из символов Санкт-Петербурга на Исаакиевской площади.",
+          founded: 1912, type: "hotel", freeCancellation: false, breakfastIncluded: true,
+          amenities: ["Wi-Fi", "Ресторан", "Бар", "Консьерж"],
+          advantages: ["Здание 1912 г.", "Вид на Исаакий", "Michelin", "Библиотека", "Рояль", "Консьерж", "Спа и сауна", "Зал торжеств"],
+          rooms: 169, checkIn: "14:00", checkOut: "12:00", petsAllowed: false,
+          address: "г. Санкт-Петербург, Исаакиевская пл., д. 4" },
+        { id: 7, name: "Рэдиссон Роза Хутор", location: "sochi", rating: 9.1, price: 9500,
+          image: "https://media.radissonhotels.net/image/radisson-hotel-rosa-khutor/exterior/16256-113869-f73227064_4K.jpg?impolicy=HomeHero",
+          description: "Горный курорт премиум-класса",
+          fullDescription: "Рэдиссон Роза Хутор — первый пятизвёздочный отель горного курорта.",
+          founded: 2013, type: "resort", freeCancellation: true, breakfastIncluded: true,
+          amenities: ["Лыжи", "Спа", "Бассейн", "Ресторан"],
+          advantages: ["Первая линия трасс", "Ски-сервис", "Тёплый бассейн", "Роза Спа", "Камины", "Авторская кухня", "Трансфер", "Детский клуб"],
+          rooms: 158, checkIn: "15:00", checkOut: "12:00", petsAllowed: false,
+          address: "г. Сочи, Красная Поляна, наб. Времена года, д. 4" },
+        { id: 8, name: "Мираж Отель", location: "kazan", rating: 8.3, price: 5200,
+          image: "https://cdn.ostrovok.ru/t/1024x768/extranet/65/52/6552357cd9a158f0d1eb3030fc9f220db8fa7f8c.jpeg",
+          description: "Комфортабельный отель рядом с Кремлём",
+          fullDescription: "Мираж Отель — уютный современный отель в центре Казани.",
+          founded: 2019, type: "hotel", freeCancellation: false, breakfastIncluded: false,
+          amenities: ["Wi-Fi", "Парковка", "Бар", "Трансфер"],
+          advantages: ["5 минут до Кремля", "Смотровая", "Татарская кухня", "Дизайн", "Трансфер", "Семейные номера", "Круглосуточно", "Самокаты"],
+          rooms: 95, checkIn: "14:00", checkOut: "12:00", petsAllowed: true,
+          address: "г. Казань, ул. Баумана, д. 44" },
+        { id: 9, name: "Арт Москва", location: "moscow", rating: 7.9, price: 2800,
+          image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_fzNifxk0opzhpM6y7QPfOMr8CRyPoN39F1yCUIwHzA&s=10",
+          description: "Стильный хостел в центре Москвы",
+          fullDescription: "Арт Москва — арт-пространство в центре столицы.",
+          founded: 2021, type: "hostel", freeCancellation: true, breakfastIncluded: false,
+          amenities: ["Wi-Fi", "Общая кухня", "Лаундж"],
+          advantages: ["Арт-дизайн", "Вечера и выставки", "Кухня", "Атмосфера", "От метро", "Гитары и настолки", "Круглосуточно", "Скидки студентам"],
+          rooms: 40, checkIn: "14:00", checkOut: "11:00", petsAllowed: false,
+          address: "г. Москва, ул. Малая Бронная, д. 4" },
+        { id: 10, name: "Северная Венеция", location: "spb", rating: 8.6, price: 6800,
+          image: "https://porekamkanalam.ru/wp-content/uploads/2023/02/3.webp",
+          description: "Апартаменты с видом на каналы",
+          fullDescription: "Северная Венеция — дизайнерские апартаменты на набережной канала Грибоедова.",
+          founded: 2020, type: "apartment", freeCancellation: true, breakfastIncluded: false,
+          amenities: ["Wi-Fi", "Кухня", "Стиральная машина"],
+          advantages: ["Вид на канал", "Дом XIX века", "Кофемашина", "Стиралка и посудомойка", "Романтика", "Рядом Спас на Крови", "Раннее заселение", "Детская кроватка"],
+          rooms: 25, checkIn: "15:00", checkOut: "11:00", petsAllowed: true,
+          address: "г. Санкт-Петербург, наб. канала Грибоедова, д. 28" }
+    ];
+
+    const PRESET_USERS = [
+        { name: "Игорь Вихорьков", email: "owner@bublikbnb.ru", password: "owner2026", role: "owner", provider: "Email", avatar: null, registeredAt: "01.01.2024", isPreset: true },
+        { name: "Алексей Модератов", email: "moderator1@bublikbnb.ru", password: "moder2026", role: "moderator", provider: "Email", avatar: null, registeredAt: "15.02.2024", isPreset: true },
+        { name: "Сергей Контролёв", email: "moderator2@bublikbnb.ru", password: "moder2026", role: "moderator", provider: "Email", avatar: null, registeredAt: "20.03.2024", isPreset: true }
+    ];
+
+    let selectedHotel = null;
+    let currentHotels = [...hotels];
+    let currentUser = null;
+    let tempAvatarData = null;
+    let selectedProvider = null;
+    let pendingAuthAction = null;
+    let pendingAuthEmail = null;
+    let generatedEmailCode = null;
+    let codeTimerInterval = null;
+    let codeTimeLeft = 300;
+    let reviews = {};
+
+    // ============ ГЕНЕРАЦИЯ ОТЗЫВОВ ============
+    const NICKNAMES = ["Путешественник", "Странник77", "Кочевник", "ТуристPRO", "Отельер", "МорскойВолк", "ГорныйОрел", "СолнечныйЛуч", "НочнойГость", "УтреннийРассвет", "СвободныйВетер", "ЗвездныйПутник", "ЛунныйКот", "ЛеснойДух", "РечнойБриз", "КаменныйСтранник", "СеверноеСияние", "ЮжныйВетер", "ДорожныйФилософ", "ВечныйСтранник", "АлексейП", "МарияК", "ДмитрийВ", "ЕкатеринаС", "НиколайТ", "ОльгаМ", "ИванП", "АннаС", "ПетрК", "ЕленаВ"];
+
+    const REVIEW_TEXTS = {
+        positive: ["Прекрасный отель! Всё на высшем уровне.", "Отличное место для отдыха. Рекомендую!", "Великолепный вид из номера, чисто, уютно.", "Всё понравилось! Идеальное расположение.", "Отличное соотношение цены и качества.", "Великолепный отдых! Отель превзошёл ожидания.", "Чисто, комфортно, удобно.", "Отзывчивый персонал, шикарные номера.", "Всё на высшем уровне.", "Прекрасное место для отдыха!"],
+        neutral: ["В целом неплохо, но есть над чем поработать.", "Отель хороший, но не идеальный.", "Нормально, ничего особенного.", "Всё стандартно.", "Приемлемо для короткой остановки.", "Есть как плюсы, так и минусы.", "Обычный отель.", "Неплохо, но есть куда расти.", "Средний уровень."],
+        negative: ["Ожидания не оправдались.", "Разочарован сервисом.", "Цена завышена.", "Не рекомендую.", "Плохой опыт.", "Не стоит своих денег."]
+    };
+
+    function randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function randomDate() {
+        const now = new Date();
+        const daysAgo = randomInt(1, 365);
+        const date = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+        const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+        return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+    }
+    function randomReviewRating() {
+        const r = Math.random();
+        if (r < 0.65) return randomInt(9, 10);
+        if (r < 0.9) return randomInt(7, 8);
+        return randomInt(4, 6);
+    }
+    function getReviewTextByRating(rating) {
+        let pool;
+        if (rating >= 9) pool = REVIEW_TEXTS.positive;
+        else if (rating >= 7) pool = REVIEW_TEXTS.neutral;
+        else pool = REVIEW_TEXTS.negative;
+        return pool[randomInt(0, pool.length - 1)];
+    }
+    function randomAvatarColor() {
+        const colors = ['linear-gradient(135deg, #FF385C, #E31C5F)', 'linear-gradient(135deg, #667eea, #764ba2)', 'linear-gradient(135deg, #f093fb, #f5576c)', 'linear-gradient(135deg, #4facfe, #00f2fe)', 'linear-gradient(135deg, #43e97b, #38f9d7)', 'linear-gradient(135deg, #fa709a, #fee140)'];
+        return colors[randomInt(0, colors.length - 1)];
+    }
+    function generateReview(hotelId) {
+        const rating = randomReviewRating();
+        return { id: 'rev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9), hotelId, author: NICKNAMES[randomInt(0, NICKNAMES.length - 1)], avatarColor: randomAvatarColor(), rating, text: getReviewTextByRating(rating), date: randomDate(), isUserReview: false, userId: null };
+    }
+    function getHotelReviews(hotelId) {
+        if (!reviews[hotelId]) {
+            reviews[hotelId] = [];
+            const count = randomInt(5, 12);
+            for (let i = 0; i < count; i++) reviews[hotelId].push(generateReview(hotelId));
+        }
+        return reviews[hotelId];
+    }
+    function getAverageReviewRating(hotelId) {
+        const hr = getHotelReviews(hotelId);
+        if (hr.length === 0) return 0;
+        return hr.reduce((acc, r) => acc + r.rating, 0) / hr.length;
+    }
+    function getRatingDistribution(hotelId) {
+        const hr = getHotelReviews(hotelId);
+        const dist = { 10: 0, 9: 0, 8: 0, 7: 0, 6: 0, 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        hr.forEach(r => { if (dist[r.rating] !== undefined) dist[r.rating]++; });
+        return dist;
+    }
+
+    // ============ ВСПОМОГАТЕЛЬНЫЕ ============
+    function getLocationName(location) {
+        const names = { 'moscow': 'Москва', 'spb': 'Санкт-Петербург', 'sochi': 'Сочи', 'kazan': 'Казань' };
+        return names[location] || location;
+    }
+    function getPropertyTypeName(type) {
+        const types = { 'hotel': 'Отель', 'apartment': 'Апартаменты', 'resort': 'Курорт', 'hostel': 'Хостел' };
+        return types[type] || type;
+    }
+    function getRatingText(rating) {
+        if (rating >= 9) return 'Превосходно';
+        if (rating >= 8) return 'Очень хорошо';
+        if (rating >= 7) return 'Хорошо';
+        return 'Нормально';
+    }
+    function getReviewsCount(hotelId) { return getHotelReviews(hotelId).length; }
+    function getAmenityIcon(amenity) {
+        const icons = { "Wi-Fi": "📶", "Бассейн": "🏊", "Спа": "💆", "Ресторан": "🍽️", "Фитнес": "💪", "Консьерж": "🛎️", "Бар": "🍸", "Пляж": "🏖️", "Детский клуб": "🧸", "Парковка": "🅿️", "Аквапарк": "🎢", "Лыжи": "⛷️", "Общая кухня": "🍳", "Лаундж": "🛋️", "Кухня": "🍳", "Стиральная машина": "🧺", "Трансфер": "🚐" };
+        return icons[amenity] || "✓";
+    }
+    function getRoleLabel(role) {
+        const labels = { 'owner': 'Владелец', 'moderator': 'Модератор', 'user': 'Пользователь' };
+        return labels[role] || 'Пользователь';
+    }
+    function getRoleIcon(role) {
+        const icons = { 'owner': '👑', 'moderator': '🛡️', 'user': '👤' };
+        return icons[role] || '👤';
+    }
+
+    // ============ ВАЛИДАЦИЯ ============
+    function isValidFullName(name) {
+        const trimmed = name.trim();
+        if (trimmed.length < 3) return false;
+        if (!/^[А-Яа-яЁёA-Za-z\s\-]+$/.test(trimmed)) return false;
+        const parts = trimmed.split(/\s+/).filter(p => p.length >= 2);
+        if (parts.length < 2) return false;
+        return true;
+    }
+    function isValidPhone(phone) {
+        const digits = phone.trim().replace(/\D/g, '');
+        return (digits.length === 11 && (digits[0] === '7' || digits[0] === '8')) || digits.length === 10;
+    }
+    function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+    }
+    function isValidName(name) {
+        const trimmed = name.trim();
+        return trimmed.length >= 2 && /^[А-Яа-яЁёA-Za-z\s\-]+$/.test(trimmed);
+    }
+    function setFieldError(fieldId, errorId, isValid) {
+        const field = document.getElementById(fieldId);
+        const error = document.getElementById(errorId);
+        if (!field || !error) return;
+        if (isValid) { field.classList.remove('error'); error.classList.remove('show'); }
+        else { field.classList.add('error'); error.classList.add('show'); }
+    }
+    function clearBookingErrors() {
+        ['fullName', 'phone', 'email'].forEach(id => {
+            const f = document.getElementById(id);
+            const e = document.getElementById(id + 'Error');
+            if (f) f.classList.remove('error');
+            if (e) e.classList.remove('show');
+        });
+    }
+
+    // ============ EMAILJS ОТПРАВКА ============
+    async function sendVerificationCode(email, code) {
+        if (typeof emailjs === 'undefined') {
+            return { success: false, error: 'EmailJS не загружен' };
+        }
+        try {
+            const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+                to_email: email,
+                otp_code: code,
+                app_name: "BublikBnB"
+            });
+            console.log('✅ Код отправлен:', response.status, response.text);
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Ошибка отправки:', error);
+            return { success: false, error: error.text || error.message || 'Ошибка' };
+        }
+    }
+
+    // ============ EMAIL-КОД ============
+    function generateEmailCode() { return String(randomInt(100000, 999999)); }
+
+    function openEmailCodeModal(title, subtitle, callback, email) {
+        pendingAuthAction = callback;
+        pendingAuthEmail = email;
+        generatedEmailCode = generateEmailCode();
+        codeTimeLeft = 300;
+
+        document.getElementById('emailCodeTitle').textContent = title;
+        document.getElementById('emailCodeSubtitle').textContent = `Мы отправили код на ${email}`;
+        document.getElementById('codeError').classList.remove('show');
+
+        const statusEl = document.getElementById('emailSendingStatus');
+        statusEl.textContent = '📨 Отправляем код на почту...';
+        statusEl.className = 'email-sending-status sending';
+        statusEl.style.display = 'block';
+
+        document.querySelectorAll('.code-input').forEach(input => {
+            input.value = '';
+            input.classList.remove('filled');
+        });
+
+        // Показываем модалку сразу
+        document.getElementById('emailCodeModal').classList.add('active');
+
+        // Отправляем письмо
+        sendVerificationCode(email, generatedEmailCode).then(result => {
+            if (!result.success) {
+                statusEl.textContent = '❌ Не удалось отправить письмо: ' + (result.error || 'проверьте настройки EmailJS');
+                statusEl.className = 'email-sending-status';
+                statusEl.style.color = 'var(--error-color)';
+                console.error('Детали ошибки:', result.error);
+                return;
+            }
+
+            statusEl.textContent = '✅ Код отправлен на ' + email;
+            statusEl.className = 'email-sending-status success';
+            statusEl.style.color = '';
+
+            setTimeout(() => {
+                const firstInput = document.querySelectorAll('.code-input')[0];
+                if (firstInput) firstInput.focus();
+            }, 100);
+
+            if (codeTimerInterval) clearInterval(codeTimerInterval);
+            updateCodeTimer();
+            codeTimerInterval = setInterval(() => {
+                codeTimeLeft--;
+                updateCodeTimer();
+                if (codeTimeLeft <= 0) {
+                    clearInterval(codeTimerInterval);
+                    document.getElementById('codeError').textContent = 'Код истёк. Запросите новый.';
+                    document.getElementById('codeError').classList.add('show');
+                }
+            }, 1000);
+        });
+    }
+
+    function updateCodeTimer() {
+        const minutes = Math.floor(codeTimeLeft / 60);
+        const seconds = codeTimeLeft % 60;
+        const el = document.getElementById('codeTimer');
+        if (el) el.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function moveToNext(input, index) {
+        input.value = input.value.replace(/\D/g, '');
+        if (input.value.length === 1) {
+            input.classList.add('filled');
+            const inputs = document.querySelectorAll('.code-input');
+            if (index < inputs.length - 1) inputs[index + 1].focus();
+        } else {
+            input.classList.remove('filled');
+        }
+        const inputs = document.querySelectorAll('.code-input');
+        if (index === inputs.length - 1 && input.value.length === 1) setTimeout(verifyEmailCode, 200);
+    }
+
+    function verifyEmailCode() {
+        const inputs = document.querySelectorAll('.code-input');
+        const enteredCode = Array.from(inputs).map(i => i.value).join('');
+
+        if (enteredCode.length !== 6) {
+            document.getElementById('codeError').textContent = 'Введите все 6 цифр кода';
+            document.getElementById('codeError').classList.add('show');
+            return;
+        }
+
+        if (enteredCode !== generatedEmailCode) {
+            document.getElementById('codeError').textContent = 'Неверный код. Попробуйте ещё раз.';
+            document.getElementById('codeError').classList.add('show');
+            inputs.forEach((input, idx) => {
+                input.value = '';
+                input.classList.remove('filled');
+                if (idx === 0) input.focus();
+            });
+            return;
+        }
+
+        if (codeTimerInterval) clearInterval(codeTimerInterval);
+        document.getElementById('codeError').classList.remove('show');
+        closeModal('emailCodeModal');
+
+        if (typeof pendingAuthAction === 'function') pendingAuthAction();
+        pendingAuthAction = null;
+        pendingAuthEmail = null;
+    }
+
+    function resendCode() {
+        if (!pendingAuthEmail) { alert('Email не найден. Попробуйте снова.'); return; }
+        generatedEmailCode = generateEmailCode();
+        codeTimeLeft = 300;
+        const statusEl = document.getElementById('emailSendingStatus');
+        statusEl.textContent = '📨 Отправляем код повторно...';
+        statusEl.className = 'email-sending-status sending';
+        statusEl.style.color = '';
+
+        sendVerificationCode(pendingAuthEmail, generatedEmailCode).then(result => {
+            if (!result.success) {
+                statusEl.textContent = '❌ Не удалось: ' + (result.error || 'ошибка');
+                statusEl.className = 'email-sending-status';
+                statusEl.style.color = 'var(--error-color)';
+                return;
+            }
+            statusEl.textContent = '✅ Код отправлен повторно на ' + pendingAuthEmail;
+            statusEl.className = 'email-sending-status success';
+
+            document.getElementById('codeError').classList.remove('show');
+            document.querySelectorAll('.code-input').forEach(input => {
+                input.value = '';
+                input.classList.remove('filled');
+            });
+            document.querySelectorAll('.code-input')[0].focus();
+
+            if (codeTimerInterval) clearInterval(codeTimerInterval);
+            updateCodeTimer();
+            codeTimerInterval = setInterval(() => {
+                codeTimeLeft--;
+                updateCodeTimer();
+                if (codeTimeLeft <= 0) clearInterval(codeTimerInterval);
+            }, 1000);
+        });
+    }
+
+    // ============ АВАТАРЫ ============
+    function renderAvatarWithBadge(elementId, user) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        el.innerHTML = '';
+        el.classList.remove('owner', 'moderator');
+        if (user && user.avatar) el.innerHTML = `<img src="${user.avatar}" alt="${user.name}">`;
+        else el.textContent = user && user.name ? user.name.charAt(0).toUpperCase() : '?';
+        if (user && (user.role === 'owner' || user.role === 'moderator')) {
+            const badge = document.createElement('div');
+            badge.className = 'role-badge';
+            badge.textContent = getRoleIcon(user.role);
+            el.appendChild(badge);
+            el.classList.add(user.role);
+        }
+    }
+
+    function handleAvatarUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) { alert('Файл слишком большой. Максимум 5 МБ.'); event.target.value = ''; return; }
+        if (!file.type.startsWith('image/')) { alert('Выберите изображение.'); event.target.value = ''; return; }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_SIZE = 200;
+                canvas.width = MAX_SIZE;
+                canvas.height = MAX_SIZE;
+                const ctx = canvas.getContext('2d');
+                if (img.width > img.height) {
+                    const offset = (img.width - img.height) / 2;
+                    ctx.drawImage(img, offset, 0, img.height, img.height, 0, 0, MAX_SIZE, MAX_SIZE);
+                } else {
+                    const offset = (img.height - img.width) / 2;
+                    ctx.drawImage(img, 0, offset, img.width, img.width, 0, 0, MAX_SIZE, MAX_SIZE);
+                }
+                tempAvatarData = canvas.toDataURL('image/jpeg', 0.85);
+                document.getElementById('avatarPreview').innerHTML = `<img src="${tempAvatarData}" alt="preview">`;
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function saveAvatar() {
+        if (!tempAvatarData) { alert('Сначала загрузите изображение'); return; }
+        currentUser.avatar = tempAvatarData;
+        updateUserInStorage();
+        renderAvatarWithBadge('userAvatar', currentUser);
+        updateAuthUI();
+        closeModal('avatarModal');
+        tempAvatarData = null;
+        alert('Аватар обновлён!');
+    }
+
+    function removeAvatar() {
+        if (!currentUser) return;
+        if (!confirm('Удалить аватар?')) return;
+        currentUser.avatar = null;
+        updateUserInStorage();
+        renderAvatarWithBadge('userAvatar', currentUser);
+        updateAuthUI();
+        document.getElementById('avatarPreview').textContent = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : '?';
+        closeModal('avatarModal');
+        tempAvatarData = null;
+    }
+
+    // ============ АВТОРИЗАЦИЯ ============
+    function isLoggedIn() { return currentUser !== null; }
+    function isAdmin() { return currentUser && (currentUser.role === 'owner' || currentUser.role === 'moderator'); }
+    function isOwner() { return currentUser && currentUser.role === 'owner'; }
+
+    function updateAuthUI() {
+        const guestActions = document.getElementById('guestActions');
+        const userInfo = document.getElementById('userInfo');
+        const adminMenuItem = document.getElementById('adminPanelMenuItem');
+        const roleTag = document.getElementById('userRoleTag');
+        if (isLoggedIn()) {
+            guestActions.style.display = 'none';
+            userInfo.classList.add('active');
+            document.getElementById('userName').textContent = currentUser.name;
+            renderAvatarWithBadge('userAvatar', currentUser);
+            if (currentUser.role === 'owner' || currentUser.role === 'moderator') {
+                roleTag.style.display = 'inline-block';
+                roleTag.textContent = getRoleLabel(currentUser.role);
+                roleTag.className = 'user-role-tag ' + currentUser.role;
+                adminMenuItem.style.display = 'flex';
+            } else {
+                roleTag.style.display = 'none';
+                adminMenuItem.style.display = 'none';
+            }
+        } else {
+            guestActions.style.display = 'flex';
+            userInfo.classList.remove('active');
+            document.getElementById('userMenu').classList.remove('active');
+        }
+    }
+
+    function toggleUserMenu() {
+        if (!isLoggedIn()) return;
+        document.getElementById('userMenu').classList.toggle('active');
+    }
+
+    document.addEventListener('click', function(e) {
+        const menu = document.getElementById('userMenu');
+        const userInfo = document.getElementById('userInfo');
+        if (menu && userInfo && !userInfo.contains(e.target)) menu.classList.remove('active');
+    });
+
+    function logout() {
+        if (!confirm('Выйти из аккаунта?')) return;
+        currentUser = null;
+        updateAuthUI();
+        localStorage.removeItem('bublikbnb_user');
+        document.getElementById('userMenu').classList.remove('active');
+        goHome();
+        alert('Вы вышли из аккаунта');
+    }
+
+    function updateUserInStorage() {
+        if (!currentUser) return;
+        localStorage.setItem('bublikbnb_user', JSON.stringify(currentUser));
+        if (currentUser.isPreset) return;
+        const savedUsers = JSON.parse(localStorage.getItem('bublikbnb_users') || '[]');
+        const index = savedUsers.findIndex(u => u.email === currentUser.email);
+        if (index >= 0) {
+            savedUsers[index] = { ...savedUsers[index], ...currentUser };
+            localStorage.setItem('bublikbnb_users', JSON.stringify(savedUsers));
+        }
+    }
+
+    function openProfileModal() {
+        if (!currentUser) return;
+        renderAvatarWithBadge('profileAvatar', currentUser);
+        document.getElementById('profileName').textContent = currentUser.name;
+        document.getElementById('profileEmail').textContent = currentUser.email;
+        document.getElementById('profileFieldName').textContent = currentUser.name;
+        document.getElementById('profileFieldEmail').textContent = currentUser.email;
+        document.getElementById('profileFieldRole').innerHTML = `${getRoleIcon(currentUser.role || 'user')} ${getRoleLabel(currentUser.role || 'user')}`;
+        document.getElementById('profileFieldProvider').textContent = currentUser.provider || 'Email';
+        document.getElementById('profileFieldDate').textContent = currentUser.registeredAt || new Date().toLocaleDateString('ru-RU');
+        document.getElementById('userMenu').classList.remove('active');
+        document.getElementById('profileModal').classList.add('active');
+    }
+
+    function openAvatarModal() {
+        if (!currentUser) return;
+        tempAvatarData = null;
+        const preview = document.getElementById('avatarPreview');
+        if (currentUser.avatar) preview.innerHTML = `<img src="${currentUser.avatar}" alt="avatar">`;
+        else preview.textContent = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : '?';
+        document.getElementById('avatarInput').value = '';
+        document.getElementById('userMenu').classList.remove('active');
+        document.getElementById('avatarModal').classList.add('active');
+    }
+
+    // ============ СОЦИАЛЬНЫЙ ВХОД ============
+    const socialIcons = {
+        'Google': `<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>`,
+        'Яндекс': `<path fill="#FC3F1D" d="M2.04 12c0-5.523 4.476-10 10-10 5.522 0 10 4.477 10 10s-4.478 10-10 10c-5.524 0-10-4.477-10-10z"/><path fill="#fff" d="M13.32 7.666h-.924c-1.694 0-2.585.858-2.585 2.123 0 1.43.616 2.1 1.881 2.959l1.045.704-3.003 4.487H7.49l2.695-4.014c-1.55-1.111-2.42-2.19-2.42-4.015 0-2.288 1.595-3.85 4.62-3.85h3.003v11.868H13.32V7.666z"/>`,
+        'VK': `<path fill="#0077FF" d="M13.162 18.994c.609 0 .858-.406.851-.915-.031-1.917.714-2.949 2.059-1.604 1.488 1.488 1.796 2.519 3.603 2.519h3.2c.808 0 1.126-.26 1.126-.668 0-.863-1.421-2.386-2.625-3.504-1.686-1.565-1.765-1.602-.313-3.486 1.801-2.339 4.157-5.336 2.073-5.336h-3.981c-.772 0-.828.435-1.103 1.083-.995 2.347-2.886 5.387-3.604 4.922-.751-.485-.407-2.406-.35-5.261.015-.754.011-1.271-1.141-1.539-.629-.145-1.241-.205-1.809-.205-2.273 0-3.841.953-2.95 1.119 1.571.293 1.42 3.692 1.054 5.16-.638 2.556-3.036-2.024-4.035-4.305-.241-.548-.315-.974-1.175-.974H.831C.133 5.878 0 6.305 0 6.674c0 .781 1.878 4.337 5.588 9.238 2.675 3.527 6.641 4.582 9.074 4.582z"/>`
+    };
+
+    function openSocialAuth(provider) {
+        selectedProvider = provider;
+        document.getElementById('socialBadgeIcon').innerHTML = socialIcons[provider];
+        document.getElementById('socialBadgeText').textContent = provider;
+        document.getElementById('socialSubmitBtn').textContent = `Продолжить через ${provider}`;
+        document.getElementById('socialAuthForm').reset();
+        closeModal('loginModal');
+        closeModal('registerModal');
+        document.getElementById('socialAuthModal').classList.add('active');
+    }
+
+    function completeSocialAuth(name, email, provider) {
+        const savedUsers = JSON.parse(localStorage.getItem('bublikbnb_users') || '[]');
+        let foundUser = savedUsers.find(u => u.email === email);
+        if (!foundUser) {
+            foundUser = { name, email, password: null, provider, role: 'user', avatar: null, registeredAt: new Date().toLocaleDateString('ru-RU') };
+            savedUsers.push(foundUser);
+        } else {
+            foundUser.provider = provider;
+            foundUser.name = name;
+            const idx = savedUsers.findIndex(u => u.email === email);
+            savedUsers[idx] = foundUser;
+        }
+        localStorage.setItem('bublikbnb_users', JSON.stringify(savedUsers));
+        currentUser = { name: foundUser.name, email: foundUser.email, avatar: foundUser.avatar, provider: foundUser.provider, role: foundUser.role || 'user', registeredAt: foundUser.registeredAt };
+        localStorage.setItem('bublikbnb_user', JSON.stringify(currentUser));
+        updateAuthUI();
+        setTimeout(() => {
+            if (!currentUser.avatar) {
+                if (confirm(`Добро пожаловать, ${currentUser.name}!\n\nХотите загрузить свой аватар?`)) openAvatarModal();
+            } else alert(`Добро пожаловать, ${currentUser.name}!`);
+        }, 300);
+    }
+
+    // ============ ОТОБРАЖЕНИЕ ОТЕЛЕЙ ============
+    function displayHotels(hotelsToShow) {
+        const list = document.getElementById('hotelsList');
+        document.getElementById('resultsCount').textContent = hotelsToShow.length;
+        if (hotelsToShow.length === 0) {
+            list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><h3>Ничего не найдено</h3><p>Попробуйте изменить параметры поиска</p></div>`;
+            return;
+        }
+        list.innerHTML = hotelsToShow.map(hotel => `
+            <div class="hotel-card" onclick="openHotelDetail(${hotel.id})">
+                <div class="hotel-image-container">
+                    <img src="${hotel.image}" alt="${hotel.name}" class="hotel-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                    <div class="hotel-image-overlay"></div>
+                    <div class="hotel-image-placeholder" style="display: none;">🏨</div>
+                    <div class="hotel-badge">${getPropertyTypeName(hotel.type)}</div>
+                </div>
+                <div class="hotel-content">
+                    <div>
+                        <div class="hotel-header"><div><h3 class="hotel-name">${hotel.name}</h3><div class="hotel-stars">★★★★★</div></div></div>
+                        <div class="hotel-location">📍 ${getLocationName(hotel.location)}</div>
+                        <p class="hotel-description">${hotel.description}</p>
+                        <div class="hotel-amenities">${hotel.amenities.map(a => `<span class="amenity">${a}</span>`).join('')}</div>
+                    </div>
+                    <div class="hotel-footer">
+                        <div class="hotel-rating">
+                            <div class="rating-badge">${hotel.rating.toFixed(1)}</div>
+                            <div><div class="rating-text">${getRatingText(hotel.rating)}</div><div style="font-size: 12px; color: var(--text-muted);">${getReviewsCount(hotel.id)} отзывов</div></div>
+                        </div>
+                        <div class="hotel-price-block">
+                            <div class="hotel-price">${hotel.price.toLocaleString()} ₽</div>
+                            <div class="price-per-night">за ночь</div>
+                            <button class="btn-book">Подробнее →</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // ============ ПОДСАЙТ ОТЕЛЯ ============
+    function openHotelDetail(hotelId) {
+        const hotel = hotels.find(h => h.id === hotelId);
+        if (!hotel) return;
+        selectedHotel = hotel;
+        const hotelReviews = getHotelReviews(hotelId);
+        const avgRating = getAverageReviewRating(hotelId);
+        const dist = getRatingDistribution(hotelId);
+
+        document.getElementById('detailContent').innerHTML = `
+            <div class="detail-hero">
+                <img src="${hotel.image}" alt="${hotel.name}" class="detail-hero-image" onerror="this.style.display='none'">
+                <div class="detail-hero-badges">
+                    <div class="hero-badge primary">${getPropertyTypeName(hotel.type)}</div>
+                    ${hotel.rating >= 9 ? '<div class="hero-badge gold">⭐ Премиум</div>' : ''}
+                    ${hotel.freeCancellation ? '<div class="hero-badge">✓ Бесплатная отмена</div>' : ''}
+                </div>
+                <div class="detail-hero-overlay">
+                    <div class="detail-hero-content">
+                        <h1 class="detail-hero-title">${hotel.name}</h1>
+                        <div class="detail-hero-location">📍 ${hotel.address}</div>
+                        <div class="detail-hero-meta">
+                            <div class="detail-hero-rating">
+                                <div class="detail-hero-rating-badge">${hotel.rating.toFixed(1)}</div>
+                                <div class="detail-hero-rating-text">${getRatingText(hotel.rating)}</div>
+                            </div>
+                            <div class="detail-hero-stars">★★★★★</div>
+                            <div style="color: var(--text-secondary); font-weight: 600;">${hotelReviews.length} отзывов</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="detail-layout">
+                <div class="detail-main">
+                    <div class="detail-section">
+                        <h2 class="detail-section-title"><span class="detail-section-title-icon">🏨</span> О отеле</h2>
+                        <p class="detail-description">${hotel.fullDescription}</p>
+                    </div>
+                    <div class="detail-section">
+                        <h2 class="detail-section-title"><span class="detail-section-title-icon">✨</span> Преимущества</h2>
+                        <div class="advantages-grid">
+                            ${hotel.advantages.map(adv => `<div class="advantage-pill"><div class="advantage-pill-icon">✓</div><div class="advantage-pill-text">${adv}</div></div>`).join('')}
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <h2 class="detail-section-title"><span class="detail-section-title-icon">📋</span> Ключевая информация</h2>
+                        <div class="facts-grid">
+                            <div class="fact-item"><div class="fact-label">📅 Год основания</div><div class="fact-value">${hotel.founded}</div></div>
+                            <div class="fact-item"><div class="fact-label">🛏️ Номеров</div><div class="fact-value">${hotel.rooms}</div></div>
+                            <div class="fact-item"><div class="fact-label">🕐 Заезд / Выезд</div><div class="fact-value">${hotel.checkIn} / ${hotel.checkOut}</div></div>
+                            <div class="fact-item"><div class="fact-label">🐾 С животными</div><div class="fact-value" style="color: ${hotel.petsAllowed ? 'var(--success-color)' : 'var(--error-color)'};">${hotel.petsAllowed ? 'Да' : 'Нет'}</div></div>
+                            <div class="fact-item" style="grid-column: 1 / -1;"><div class="fact-label">📍 Адрес</div><div class="fact-value small">${hotel.address}</div></div>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <h2 class="detail-section-title"><span class="detail-section-title-icon">🛎️</span> Удобства и услуги</h2>
+                        <div class="detail-amenities-grid">
+                            ${hotel.amenities.map(a => `<div class="detail-amenity"><div class="detail-amenity-icon">${getAmenityIcon(a)}</div><span>${a}</span></div>`).join('')}
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <h2 class="detail-section-title"><span class="detail-section-title-icon">💬</span> Отзывы гостей</h2>
+                        <div class="reviews-summary">
+                            <div class="reviews-summary-score">
+                                <div class="reviews-summary-number">${avgRating.toFixed(1)}</div>
+                                <div class="reviews-summary-stars">★★★★★</div>
+                                <div class="reviews-summary-text">${hotelReviews.length} отзывов</div>
+                            </div>
+                            <div class="reviews-summary-details">
+                                ${[10,9,8,7,6,5,4,3,2,1].map(star => {
+                                    const count = dist[star] || 0;
+                                    const percent = hotelReviews.length > 0 ? (count / hotelReviews.length) * 100 : 0;
+                                    return `<div class="reviews-summary-bar"><span style="width: 40px;">${star} ⭐</span><div class="reviews-summary-bar-track"><div class="reviews-summary-bar-fill" style="width: ${percent}%"></div></div><span style="width: 40px; text-align: right;">${count}</span></div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                        <div class="reviews-list" id="reviewsList">
+                            ${hotelReviews.map(review => renderReviewItem(review)).join('')}
+                        </div>
+                        <button class="write-review-btn" onclick="openWriteReviewModal(${hotel.id})">✍️ Написать отзыв</button>
+                    </div>
+                </div>
+                <div class="detail-sidebar">
+                    <div class="booking-sidebar-card">
+                        <div class="sidebar-price-label">Цена за ночь</div>
+                        <div class="sidebar-price">${hotel.price.toLocaleString()} ₽</div>
+                        <div class="sidebar-price-per">включая все налоги</div>
+                        <div class="sidebar-divider"></div>
+                        <div class="sidebar-info-row"><span class="sidebar-info-label">Рейтинг</span><span class="sidebar-info-value pink">⭐ ${hotel.rating.toFixed(1)} / 10</span></div>
+                        <div class="sidebar-info-row"><span class="sidebar-info-label">Заезд</span><span class="sidebar-info-value">${hotel.checkIn}</span></div>
+                        <div class="sidebar-info-row"><span class="sidebar-info-label">Выезд</span><span class="sidebar-info-value">${hotel.checkOut}</span></div>
+                        <div class="sidebar-divider"></div>
+                        <div class="sidebar-info-row"><span class="sidebar-info-label">✓ Бесплатная отмена</span><span class="sidebar-info-value ${hotel.freeCancellation ? 'green' : ''}">${hotel.freeCancellation ? 'Да' : 'Нет'}</span></div>
+                        <div class="sidebar-info-row"><span class="sidebar-info-label">✓ Завтрак</span><span class="sidebar-info-value ${hotel.breakfastIncluded ? 'green' : ''}">${hotel.breakfastIncluded ? 'Включён' : 'Не включён'}</span></div>
+                        <button class="btn-book-large" onclick="handleBookingFromDetail()">Забронировать</button>
+                        <div class="sidebar-note">Вы не будете списаны до заселения</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('homeView').classList.remove('active');
+        document.getElementById('adminView').classList.remove('active');
+        document.getElementById('detailView').classList.add('active');
+        document.getElementById('searchBar').style.display = 'none';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderReviewItem(review) {
+        const canModerate = isAdmin();
+        const isAuthor = currentUser && review.userId === currentUser.email;
+        const canDelete = isAdmin() || isAuthor;
+        return `
+            <div class="review-item" data-review-id="${review.id}">
+                <div class="review-header">
+                    <div class="review-avatar" style="background: ${review.avatarColor || 'linear-gradient(135deg, #667eea, #764ba2)'};">${review.avatar ? `<img src="${review.avatar}" alt="${review.author}">` : review.author.charAt(0).toUpperCase()}</div>
+                    <div class="review-author-info">
+                        <div class="review-author-name">${review.author}${isAuthor ? ' (вы)' : ''}</div>
+                        <div class="review-date">${review.date}</div>
+                    </div>
+                    <div class="review-rating">${review.rating}.0</div>
+                </div>
+                <div class="review-text">${review.text}</div>
+                ${canDelete ? `<div class="review-admin-actions">${isAuthor ? `<button class="btn-review-action danger" onclick="deleteReview('${review.id}', ${review.hotelId})">🗑️ Удалить мой отзыв</button>` : `<button class="btn-review-action danger" onclick="deleteReview('${review.id}', ${review.hotelId})">🗑️ Удалить (модерация)</button>`}</div>` : ''}
+            </div>
+        `;
+    }
+
+    function handleBookingFromDetail() {
+        if (!isLoggedIn()) { document.getElementById('authRequiredModal').classList.add('active'); return; }
+        if (selectedHotel) openBookingModal(selectedHotel.id);
+    }
+
+    // ============ ОТЗЫВЫ ============
+    function openWriteReviewModal(hotelId) {
+        if (!isLoggedIn()) { document.getElementById('authRequiredModal').classList.add('active'); return; }
+        const hotel = hotels.find(h => h.id === hotelId);
+        if (!hotel) return;
+        const existingModal = document.getElementById('writeReviewModal');
+        if (existingModal) existingModal.remove();
+        document.body.insertAdjacentHTML('beforeend', `
+            <div class="modal active" id="writeReviewModal" style="display:flex;">
+                <div class="modal-content" style="max-width: 550px;">
+                    <button class="close-modal" onclick="closeWriteReviewModal()">&times;</button>
+                    <h2 class="modal-title">Написать отзыв</h2>
+                    <p class="modal-subtitle">${hotel.name}</p>
+                    <div class="form-group">
+                        <label>Ваша оценка</label>
+                        <div class="star-selector" id="starSelector">
+                            ${[1,2,3,4,5,6,7,8,9,10].map(n => `<span class="star" data-value="${n}" onclick="setReviewRating(${n})">★</span>`).join('')}
+                            <span class="rating-input-value" id="ratingValue">0 / 10</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Ваш отзыв</label>
+                        <textarea id="reviewText" placeholder="Поделитесь впечатлениями..." style="min-height: 120px;"></textarea>
+                        <div class="field-error" id="reviewError">Введите текст отзыва (мин. 10 символов)</div>
+                    </div>
+                    <button class="btn-submit" onclick="submitReview(${hotelId})" style="margin-top: 8px;">Опубликовать отзыв</button>
+                </div>
+            </div>
+        `);
+        window.currentReviewRating = 0;
+    }
+    function closeWriteReviewModal() {
+        const modal = document.getElementById('writeReviewModal');
+        if (modal) modal.remove();
+        window.currentReviewRating = 0;
+    }
+    function setReviewRating(value) {
+        window.currentReviewRating = value;
+        document.querySelectorAll('#starSelector .star').forEach(star => {
+            const v = parseInt(star.dataset.value);
+            if (v <= value) star.classList.add('active');
+            else star.classList.remove('active');
+        });
+        document.getElementById('ratingValue').textContent = `${value} / 10`;
+    }
+    function submitReview(hotelId) {
+        const text = document.getElementById('reviewText').value.trim();
+        const rating = window.currentReviewRating;
+        if (rating === 0) { alert('Поставьте оценку от 1 до 10'); return; }
+        if (text.length < 10) { document.getElementById('reviewError').classList.add('show'); return; }
+        const newReview = {
+            id: 'rev_' + Date.now() + '_user', hotelId, author: currentUser.name,
+            avatar: currentUser.avatar || null, avatarColor: 'linear-gradient(135deg, #FF385C, #E31C5F)',
+            rating, text, date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }),
+            isUserReview: true, userId: currentUser.email
+        };
+        if (!reviews[hotelId]) reviews[hotelId] = [];
+        reviews[hotelId].unshift(newReview);
+        const userReviews = JSON.parse(localStorage.getItem('bublikbnb_reviews') || '[]');
+        userReviews.push(newReview);
+        localStorage.setItem('bublikbnb_reviews', JSON.stringify(userReviews));
+        openHotelDetail(hotelId);
+        closeWriteReviewModal();
+        alert('Спасибо за отзыв!');
+    }
+    function deleteReview(reviewId, hotelId) {
+        if (!confirm('Удалить этот отзыв?')) return;
+        if (reviews[hotelId]) reviews[hotelId] = reviews[hotelId].filter(r => r.id !== reviewId);
+        const userReviews = JSON.parse(localStorage.getItem('bublikbnb_reviews') || '[]');
+        localStorage.setItem('bublikbnb_reviews', JSON.stringify(userReviews.filter(r => r.id !== reviewId)));
+        openHotelDetail(hotelId);
+    }
+
+    // ============ ФИЛЬТРЫ ============
+    function applySearch() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        let filtered = [...hotels];
+        if (query) filtered = filtered.filter(h => h.name.toLowerCase().includes(query) || getLocationName(h.location).toLowerCase().includes(query) || h.description.toLowerCase().includes(query));
+        currentHotels = filtered;
+        applyFilters();
+    }
+    function applyFilters() {
+        const priceRange = document.getElementById('priceRange').value;
+        const rating = document.getElementById('rating').value;
+        const propertyType = document.getElementById('propertyType').value;
+        const freeCancellation = document.getElementById('freeCancellation').checked;
+        const breakfastIncluded = document.getElementById('breakfastIncluded').checked;
+        let filtered = [...currentHotels];
+        if (priceRange !== 'all') {
+            const [min, max] = priceRange.split('-').map(Number);
+            if (max) filtered = filtered.filter(h => h.price >= min && h.price <= max);
+            else filtered = filtered.filter(h => h.price >= min);
+        }
+        if (rating !== 'all') filtered = filtered.filter(h => h.rating >= parseFloat(rating));
+        if (propertyType !== 'all') filtered = filtered.filter(h => h.type === propertyType);
+        if (freeCancellation) filtered = filtered.filter(h => h.freeCancellation);
+        if (breakfastIncluded) filtered = filtered.filter(h => h.breakfastIncluded);
+        displayHotels(filtered);
+    }
+    function sortHotels() {
+        const sortBy = document.getElementById('sortBy').value;
+        let sorted = [...currentHotels];
+        switch(sortBy) {
+            case 'priceAsc': sorted.sort((a, b) => a.price - b.price); break;
+            case 'priceDesc': sorted.sort((a, b) => b.price - a.price); break;
+            case 'rating': sorted.sort((a, b) => b.rating - a.rating); break;
+            default: sorted.sort((a, b) => (b.rating - a.rating) || (a.price - b.price));
+        }
+        displayHotels(sorted);
+    }
+    function clearFilters() {
+        ['searchInput', 'checkIn', 'checkOut'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        document.getElementById('guests').value = '1';
+        ['priceRange', 'rating', 'propertyType'].forEach(id => document.getElementById(id).value = 'all');
+        ['freeCancellation', 'breakfastIncluded'].forEach(id => document.getElementById(id).checked = false);
+        currentHotels = [...hotels];
+        displayHotels(currentHotels);
+    }
+
+    // ============ БРОНИРОВАНИЕ ============
+    function openBookingModal(hotelId) {
+        selectedHotel = hotels.find(h => h.id === hotelId);
+        document.getElementById('selectedHotelInfo').innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div><strong>${selectedHotel.name}</strong><br>${getLocationName(selectedHotel.location)} | ⭐ ${selectedHotel.rating}/10<br>💰 ${selectedHotel.price.toLocaleString()} ₽ / ночь</div>
+                <div style="font-size: 12px; color: var(--text-secondary); text-align: right;">${selectedHotel.freeCancellation ? '✓ Бесплатная отмена<br>' : ''}${selectedHotel.breakfastIncluded ? '✓ Завтрак включён' : ''}</div>
+            </div>
+        `;
+        if (currentUser) {
+            if (currentUser.email) document.getElementById('email').value = currentUser.email;
+            if (currentUser.name) document.getElementById('fullName').value = currentUser.name;
+        }
+        clearBookingErrors();
+        document.getElementById('successMessage').classList.remove('show');
+        document.getElementById('bookingForm').style.display = 'block';
+        document.getElementById('bookingModal').classList.add('active');
+    }
+
+    // ============ НАВИГАЦИЯ ============
+    function goHome() {
+        document.getElementById('detailView').classList.remove('active');
+        document.getElementById('adminView').classList.remove('active');
+        document.getElementById('homeView').classList.add('active');
+        document.getElementById('searchBar').style.display = 'flex';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+        if (modalId === 'bookingModal') {
+            document.getElementById('bookingForm').reset();
+            document.getElementById('bookingForm').style.display = 'block';
+            clearBookingErrors();
+        }
+        if (modalId === 'socialAuthModal') selectedProvider = null;
+    }
+    function openAuthModal(type) {
+        if (type === 'login') document.getElementById('loginModal').classList.add('active');
+        else if (type === 'register') document.getElementById('registerModal').classList.add('active');
+    }
+    function switchAuth(type) {
+        closeModal('loginModal');
+        closeModal('registerModal');
+        openAuthModal(type);
+    }
+    function showFooterInfo(section) {
+        const info = {
+            'О нас': 'BublikBnB — российский сервис бронирования отелей. Работаем с 2020 года.',
+            'Карьера': 'hr@bublikbnb.ru',
+            'Пресс-центр': 'press@bublikbnb.ru',
+            'Блог': 'blog.bublikbnb.ru',
+            'Партнёрам': 'partners@bublikbnb.ru',
+            'Центр помощи': '24/7: +7 (900) 123-45-67',
+            'Правила бронирования': 'Отмена согласно условиям отеля.',
+            'Способы оплаты': 'Visa, MasterCard, МИР, СБП.',
+            'Возврат средств': 'До 10 рабочих дней.',
+            'Безопасность': 'PCI DSS защита.',
+            'Условия использования': 'Соглашаетесь с правилами.',
+            'Политика конфиденциальности': 'ФЗ-152.',
+            'Cookies': 'Используем cookies.'
+        };
+        document.getElementById('infoModalTitle').textContent = section;
+        document.getElementById('infoModalText').textContent = info[section] || 'Информация будет добавлена позже.';
+        document.getElementById('infoModal').classList.add('active');
+    }
+
+    // ============ ИНИЦИАЛИЗАЦИЯ И ОБРАБОТЧИКИ ФОРМ ============
+    document.addEventListener('DOMContentLoaded', function() {
+        // Инициализация EmailJS
+        initEmailJS();
+
+        // Загружаем отзывы
+        const savedReviews = JSON.parse(localStorage.getItem('bublikbnb_reviews') || '[]');
+        savedReviews.forEach(r => {
+            if (!reviews[r.hotelId]) reviews[r.hotelId] = [];
+            reviews[r.hotelId].unshift(r);
+        });
+        hotels.forEach(hotel => {
+            if (!reviews[hotel.id] || reviews[hotel.id].length === 0) getHotelReviews(hotel.id);
+        });
+        
+        // Восстанавливаем сессию
+        const savedUser = localStorage.getItem('bublikbnb_user');
+        if (savedUser) {
+            try { currentUser = JSON.parse(savedUser); updateAuthUI(); }
+            catch (e) { localStorage.removeItem('bublikbnb_user'); }
+        }
+        
+        displayHotels(hotels);
+
+        // Даты
+        const today = new Date().toISOString().split('T')[0];
+        const ci = document.getElementById('checkIn');
+        const co = document.getElementById('checkOut');
+        if (ci) ci.min = today;
+        if (co) co.min = today;
+        if (ci) {
+            ci.addEventListener('change', function() {
+                if (co) {
+                    co.min = this.value;
+                    if (co.value && co.value < this.value) co.value = this.value;
+                }
+            });
+        }
+
+        // Валидация в реальном времени
+        const fn = document.getElementById('fullName');
+        if (fn) fn.addEventListener('input', function() { if (this.value.length > 0) setFieldError('fullName', 'fullNameError', isValidFullName(this.value)); });
+        const ph = document.getElementById('phone');
+        if (ph) ph.addEventListener('input', function() { if (this.value.length > 0) setFieldError('phone', 'phoneError', isValidPhone(this.value)); });
+        const em = document.getElementById('email');
+        if (em) em.addEventListener('input', function() { if (this.value.length > 0) setFieldError('email', 'emailError', isValidEmail(this.value)); });
+
+        // ============ ФОРМА РЕГИСТРАЦИИ ============
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('📝 Отправка формы регистрации');
+            
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            
+            if (!isValidName(name)) { alert('Введите корректное имя (только буквы, минимум 2 символа)'); return; }
+            if (!isValidEmail(email)) { alert('Введите корректный email'); return; }
+            if (password.length < 6) { alert('Пароль должен содержать минимум 6 символов'); return; }
+            
+            const savedUsers = JSON.parse(localStorage.getItem('bublikbnb_users') || '[]');
+            if (savedUsers.some(u => u.email === email) || PRESET_USERS.some(u => u.email === email)) {
+                alert('Пользователь с таким email уже существует');
+                return;
+            }
+            
+            const form = this;
+            closeModal('registerModal');
+            
+            openEmailCodeModal('Подтверждение регистрации', `Мы отправили код на ${email}`, () => {
+                const newUser = { name, email, password, avatar: null, provider: 'Email', role: 'user', registeredAt: new Date().toLocaleDateString('ru-RU') };
+                savedUsers.push(newUser);
+                localStorage.setItem('bublikbnb_users', JSON.stringify(savedUsers));
+                currentUser = { name, email, avatar: null, provider: 'Email', role: 'user', registeredAt: newUser.registeredAt };
+                localStorage.setItem('bublikbnb_user', JSON.stringify(currentUser));
+                updateAuthUI();
+                alert(`Регистрация успешна!\n\nДобро пожаловать, ${name}!`);
+                setTimeout(() => {
+                    if (confirm('Хотите загрузить аватар?')) openAvatarModal();
+                }, 500);
+            }, email);
+            
+            form.reset();
+        });
+
+        // ============ ФОРМА ВХОДА ============
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('🔐 Отправка формы входа');
+            
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!isValidEmail(email)) { alert('Введите корректный email'); return; }
+            if (password.length < 6) { alert('Пароль должен содержать минимум 6 символов'); return; }
+            
+            let foundUser = PRESET_USERS.find(u => u.email === email && u.password === password);
+            if (!foundUser) {
+                const savedUsers = JSON.parse(localStorage.getItem('bublikbnb_users') || '[]');
+                foundUser = savedUsers.find(u => u.email === email && u.password === password);
+            }
+            
+            if (!foundUser) {
+                alert('Неверный email или пароль');
+                return;
+            }
+            
+            const form = this;
+            closeModal('loginModal');
+            
+            openEmailCodeModal('Подтверждение входа', `Мы отправили код на ${email}`, () => {
+                currentUser = {
+                    name: foundUser.name,
+                    email: foundUser.email,
+                    avatar: foundUser.avatar || null,
+                    provider: foundUser.provider || 'Email',
+                    role: foundUser.role || 'user',
+                    registeredAt: foundUser.registeredAt || new Date().toLocaleDateString('ru-RU'),
+                    isPreset: foundUser.isPreset || false
+                };
+                localStorage.setItem('bublikbnb_user', JSON.stringify(currentUser));
+                updateAuthUI();
+                alert(`Добро пожаловать, ${currentUser.name}!`);
+            }, email);
+            
+            form.reset();
+        });
+
+        // ============ ФОРМА СОЦИАЛЬНОГО ВХОДА ============
+        document.getElementById('socialAuthForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('socialName').value.trim();
+            const email = document.getElementById('socialEmail').value.trim();
+            const provider = selectedProvider;
+            
+            if (!isValidName(name)) { alert('Введите корректное имя'); return; }
+            if (!isValidEmail(email)) { alert('Введите корректный email'); return; }
+            
+            closeModal('socialAuthModal');
+            this.reset();
+            
+            openEmailCodeModal('Подтверждение входа', `Мы отправили код на ${email}`, () => {
+                completeSocialAuth(name, email, provider);
+            }, email);
+        });
+
+        // ============ ФОРМА БРОНИРОВАНИЯ ============
+        document.getElementById('bookingForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (!isLoggedIn()) { closeModal('bookingModal'); document.getElementById('authRequiredModal').classList.add('active'); return; }
+            
+            const fullName = document.getElementById('fullName').value;
+            const phone = document.getElementById('phone').value;
+            const email = document.getElementById('email').value;
+            
+            const nameValid = isValidFullName(fullName);
+            const phoneValid = isValidPhone(phone);
+            const emailValid = isValidEmail(email);
+            
+            setFieldError('fullName', 'fullNameError', nameValid);
+            setFieldError('phone', 'phoneError', phoneValid);
+            setFieldError('email', 'emailError', emailValid);
+            
+            if (!nameValid || !phoneValid || !emailValid) { alert('Проверьте правильность заполнения полей'); return; }
+            
+            const bookingData = {
+                hotel: selectedHotel ? selectedHotel.name : 'Не выбран',
+                user: currentUser.name,
+                userEmail: currentUser.email,
+                name: fullName.trim(),
+                phone: phone.trim(),
+                email: email.trim(),
+                checkIn: document.getElementById('checkIn').value,
+                checkOut: document.getElementById('checkOut').value,
+                guests: document.getElementById('guests').value,
+                specialRequests: document.getElementById('specialRequests').value,
+                bookingDate: new Date().toLocaleString('ru-RU')
+            };
+            
+            closeModal('bookingModal');
+            
+            openEmailCodeModal('Подтверждение бронирования', `Мы отправили код на ${email}`, () => {
+                const bookings = JSON.parse(localStorage.getItem('bublikbnb_bookings') || '[]');
+                bookings.push({...bookingData, id: 'book_' + Date.now(), status: 'confirmed'});
+                localStorage.setItem('bublikbnb_bookings', JSON.stringify(bookings));
+                
+                document.getElementById('selectedHotelInfo').innerHTML = `<div style="text-align: center; color: var(--success-color); font-weight: 700; padding: 20px;">✅ Бронирование успешно подтверждено!<br><br>Детали отправлены на ${email}</div>`;
+                document.getElementById('bookingForm').style.display = 'none';
+                document.getElementById('bookingModal').classList.add('active');
+                
+                setTimeout(() => {
+                    closeModal('bookingModal');
+                }, 2500);
+            }, email);
+        });
+
+        // Закрытие по клику на фон
+        window.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
+                if (e.target.id === 'bookingModal') {
+                    document.getElementById('bookingForm').reset();
+                    document.getElementById('bookingForm').style.display = 'block';
+                    clearBookingErrors();
+                }
+                if (e.target.id === 'socialAuthModal') selectedProvider = null;
+            }
+        });
+        
+        console.log('✅ Приложение инициализировано');
+    });
+</script>
+</body>
+</html>
